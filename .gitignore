@@ -1,0 +1,5 @@
+dumps/*
+datasets/*
+spark-warehouse/*
+.ipynb_checkpoints/*
+*.log
