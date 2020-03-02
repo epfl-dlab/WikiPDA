@@ -10,7 +10,7 @@ import argparse
 
 
 conf = pyspark.SparkConf().setMaster("local[*]").setAll([
-                                   ('spark.driver.memory','230g'),
+                                   ('spark.driver.memory','210g'),
                                    ('spark.driver.maxResultSize', '32G'),
                                    ('spark.local.dir', '/scratch/tmp/'),
                                    ('spark.yarn.stagingDir', '/scratch/tmp/')                 
@@ -64,7 +64,7 @@ def get_valid_ngrams(row):
         for ng in ngrams:
             if ng in anchors:
                 found_anchors.append(ng)
-                text.replace(ng, "")
+                text.replace(ng, " @ ")
     return [Row(qid=row.qid, anchors=a) for a in found_anchors]
 
 matched_ngrams = spark.createDataFrame(chunks.flatMap(get_valid_ngrams))\
