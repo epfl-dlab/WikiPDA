@@ -25,7 +25,8 @@ args = parser.parse_args()
 
 site = args.site  # 'en'
 
-matched_ngrams = spark.read.parquet("datasets/{}/matched_ngrams.parquet".format(site))
+matched_ngrams = spark.read.parquet("datasets/{}/matched_ngrams.parquet".format(site))\
+                .selectExpr("anchors as ngram", "qid", "occ")
 
 ngrams_as_text = matched_ngrams.groupBy("ngram").agg(sum("occ").alias("as_text"))
 commonness = spark.read.parquet("datasets/{}/anchors_stats.parquet".format(site))
