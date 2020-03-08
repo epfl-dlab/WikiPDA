@@ -8,14 +8,15 @@ import urllib
 import mwparserfromhell
 import argparse
 
-
 conf = pyspark.SparkConf().setMaster("local[*]").setAll([
                                    ('spark.jars.packages', 'com.databricks:spark-xml_2.11:0.8.0'),
-                                   ('spark.driver.memory','90g'),
+                                   ('spark.driver.memory','230g'),
                                    ('spark.driver.maxResultSize', '32G'),
                                    ('spark.local.dir', '/scratch/tmp/'),
                                    ('spark.yarn.stagingDir', '/scratch/tmp/')
                                   ])
+
+
 # create the session
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
 # create the context

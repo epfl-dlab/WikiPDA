@@ -4,3 +4,4 @@ spark-warehouse/*
 .ipynb_checkpoints/*
 *.log
 .*
+wikiextractor/

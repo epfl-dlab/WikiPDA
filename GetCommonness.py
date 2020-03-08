@@ -7,11 +7,12 @@ import json
 import argparse
 
 conf = pyspark.SparkConf().setMaster("local[*]").setAll([
-                                   ('spark.driver.memory','150g'),
+                                   ('spark.driver.memory','230g'),
                                    ('spark.driver.maxResultSize', '32G'),
                                    ('spark.local.dir', '/scratch/tmp/'),
                                    ('spark.yarn.stagingDir', '/scratch/tmp/')                 
                                   ])
+
 
 # create the session
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
