@@ -13,7 +13,8 @@ conf = pyspark.SparkConf().setMaster("local[*]").setAll([
                                    ('spark.driver.memory','230g'),
                                    ('spark.driver.maxResultSize', '32G'),
                                    ('spark.local.dir', '/scratch/tmp/'),
-                                   ('spark.yarn.stagingDir', '/scratch/tmp/')
+                                   ('spark.yarn.stagingDir', '/scratch/tmp/'),
+                                   ('spark.sql.warehouse.dir', '/scratch/tmp/')
                                   ])
 
 

@@ -5,3 +5,5 @@ spark-warehouse/*
 *.log
 .*
 wikiextractor/
+models/
+temp_data/
