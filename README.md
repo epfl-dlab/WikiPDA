@@ -8,7 +8,7 @@ Full paper: [https://arxiv.org/abs/2009.11207](https://arxiv.org/abs/2009.11207)
 
 <hr>
 
-Content of this repository:
+## Content of this repository:
 
 
 * [PaperAndCode](PaperAndCode): This folder contains the original PySpark code to reproduce the results and the Jupyter notebooks used for the analyses described in the paper.
@@ -18,3 +18,16 @@ Content of this repository:
 * [WikiPDA-HTTP-API](WikiPDA-HTTP-API): HTTP API that produces cross-lingual topic embeddings using WikiPDA. The goal of the API is to provide an easy way to get a feel for the technique without having to install the libraries. 
 
 Credits for WikiPDA-Lib and WikiPDA-HTTP-API: [DanielBergThomsen](https://github.com/DanielBergThomsen)
+
+## What can I do with WikiPDA?
+
+WikiPDA gives you a distribution over K topics generated with LDA. The process is unsupervised, and it allows you to discover the subjects more covered in different languages.
+
+Examine the density of topics in different languages:
+![Topics Density](images/topics_density.png)
+
+Compute the topical distance between different Wikipedia editions:
+
+![Languages distances](images/langs_distance.png)
+
+Check the paper for more use cases: [https://arxiv.org/abs/2009.11207](https://arxiv.org/abs/2009.11207)
