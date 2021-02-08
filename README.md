@@ -26,6 +26,7 @@ WikiPDA gives you a distribution over K topics generated with LDA. The process i
 Examine the density of topics in different languages:
 ![Topics Density](images/topics_density.png)
 
+
 Compute the topical distance between different Wikipedia editions:
 
 ![Languages distances](images/langs_distance.png)
