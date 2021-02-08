@@ -21,7 +21,9 @@ Credits for WikiPDA-Lib and WikiPDA-HTTP-API: [DanielBergThomsen](https://github
 
 ## What can I do with WikiPDA?
 
-WikiPDA gives you a distribution over K topics generated with LDA. The process is unsupervised, and it allows you to discover the subjects more covered in different languages.
+WikiPDA gives you a language-agnostic distribution over K topics generated with LDA. The process is unsupervised, and it allows you to discover the subjects more covered in different languages, compute the topics distance between Wikipedia editions, or get a topics vector that can be used as an input for a supervised task.
+
+Few examples:
 
 Examine the density of topics in different languages:
 ![Topics Density](images/topics_density.png)
