@@ -19,6 +19,10 @@ Full paper: [https://arxiv.org/abs/2009.11207](https://arxiv.org/abs/2009.11207)
 
 Credits for WikiPDA-Lib and WikiPDA-HTTP-API: [DanielBergThomsen](https://github.com/DanielBergThomsen)
 
+## Public Demo
+
+Available soon. We will release a demo to test WikiPDA.
+
 ## What can I do with WikiPDA?
 
 WikiPDA gives you a language-agnostic distribution over K topics generated with LDA. The process is unsupervised, and it allows you to discover the subjects more covered in different languages, compute the topics distance between Wikipedia editions, or get a topics vector that can be used as an input for a supervised task.
@@ -28,9 +32,16 @@ Few examples:
 Examine the density of topics in different languages:
 ![Topics Density](images/topics_density.png)
 
+<hr/>
 
 Compute the topical distance between different Wikipedia editions:
 
 ![Languages distances](images/langs_distance.png)
+
+<hr/>
+
+Train a supervised topic model with custom labels (ORES in this example) that does not depend on the articles language:
+
+![Supervised Learning](images/supervised_learning_ORES.png)
 
 Check the paper for more use cases: [https://arxiv.org/abs/2009.11207](https://arxiv.org/abs/2009.11207)
