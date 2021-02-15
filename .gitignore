@@ -7,3 +7,4 @@ spark-warehouse/*
 wikiextractor/
 models/
 temp_data/
+__pycache__/

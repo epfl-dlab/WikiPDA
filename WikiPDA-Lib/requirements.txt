@@ -3,3 +3,4 @@ py-mini-racer
 requests
 sklearn
 xgboost
+pyspark

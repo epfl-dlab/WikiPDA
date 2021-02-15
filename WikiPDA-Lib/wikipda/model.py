@@ -11,6 +11,10 @@ from typing import List
 from gensim.models.ldamulticore import LdaMulticore
 import numpy as np
 from xgboost import XGBClassifier
+from pyspark.sql import SparkSession, Row
+from pyspark import SparkConf
+from pyspark.ml.clustering import LocalLDAModel
+from pyspark.ml.feature import CountVectorizerModel
 
 
 class TextClassifier:
@@ -102,6 +106,8 @@ class LDAModel:
     Class for producing the embeddings for an article which has been run through the WikiPDA
     pre-processing pipeline.
     """
+    spark = None
+    sc = None
 
     def __init__(self, k: int = 300):
         """
@@ -112,25 +118,44 @@ class LDAModel:
         """
 
         # Attempt to load model
-        path = LDA_MODEL_PATH + str(k)
         self.k = k
-        self.model = None
-        self._load_model(path)
 
-    def _load_model(self, path: str):
+        self.gensim_model = None
+
+        self.spark_model = None
+        self.spark_transformer = None
+
+        # print(LDAModel.sc._conf.get('spark.driver.memory'))
+        self._load_model(k)
+
+    def _load_model(self, k: int):
         """
         Loads the given LDA model contained in the given path.
 
         :param path: The folder in which the model should be contained
         """
 
-        # Verify that model is present in directory
-        if not os.path.exists(path):
-            e = f'Model not present in {path} for configured k. Make sure you have downloaded ' \
-                f'the model using the ResourceDownloader class'
-            raise FileNotFoundError(e)
+        path = LDA_MODEL_PATH + "Gensim/" + str(k)
 
-        self.model = LdaMulticore.load(path + '/lda.model')
+        if os.path.exists(path):
+            self.gensim_model = LdaMulticore.load(path + '/lda.model')
+        else:
+            path = LDA_MODEL_PATH + "PySpark/" + str(k)
+            if os.path.exists(path):
+                conf = SparkConf().setMaster("local[*]").setAll([
+                    ('spark.driver.memory', '16g')
+                ])
+
+                # create the session
+                LDAModel.spark = SparkSession.builder.config(conf=conf).getOrCreate()
+                # create the context
+                LDAModel.sc = LDAModel.spark.sparkContext
+                self.spark_model = LocalLDAModel.load(path)
+                self.spark_transformer = CountVectorizerModel.load(LDA_MODEL_PATH + "PySpark/transformer")
+            else:
+                e = f'Model not present in {path} for configured k. Make sure you have downloaded ' \
+                    f'the model using the ResourceDownloader class'
+                raise FileNotFoundError(e)
 
     def get_embeddings(self, articles: List[Article]) -> List[np.ndarray]:
         """
@@ -141,9 +166,16 @@ class LDAModel:
         :return: The topic embeddings for the given Article instances.
         """
         embeddings = []
-        for bol in [article.bol for article in articles]:
-            embedding = self.model.get_document_topics(bol, minimum_probability=0)
-            embeddings.append(embedding)
+        if self.gensim_model is not None:
+            for bol in [article.bol for article in articles]:
+                embedding = self.gensim_model.get_document_topics(bol, minimum_probability=0)
+                embeddings.append(embedding)
+        if self.spark_model is not None:
+            bols = [article.links for article in articles]
+            document = LDAModel.spark.createDataFrame(LDAModel.sc.parallelize(bols).map(lambda r: Row(links=r)))
+            result = self.spark_transformer.transform(document)
+            topics_distribution = self.spark_model.transform(result).select("topicDistribution")
+            embeddings = [tv.topicDistribution.values for tv in topics_distribution.collect()]
         return embeddings
 
     def get_topics(self, num_links: int) -> np.ndarray:
@@ -153,4 +185,5 @@ class LDAModel:
         :param num_links: How many of the most probable links to retrieve for each topic.
         :return: Topic distributions of the model
         """
-        return self.model.show_topics(self.k, num_links, formatted=False)
+        if self.gensim_model is not None:
+            return self.gensim_model.show_topics(self.k, num_links, formatted=False)
