@@ -5,11 +5,15 @@ and bag-of-links representation of the links for each article represented as an 
 """
 
 import pickle
+import plyvel
 import re
 import os
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from wikipda.settings import TOPIC_DICT_PATH, RESOURCE_PATH
 import numpy as np
+import scipy.sparse as sparse
+from collections import OrderedDict
+import mwparserfromhell as mw
 
 from py_mini_racer import py_mini_racer
 import requests
@@ -76,13 +80,15 @@ class Preprocessor:
     use different resources.
     """
 
-    def __init__(self, language: str):
+    def __init__(self, language: str, from_disk=False):
         """
         Constructor which loads a lot of resources for the processing of articles. It takes a couple
         of seconds to load everything.
 
         :param language: Code for the language edition of wikipedia that you wish to process
         resources for. E.g: en (english), it (italian) or sv (swedish)
+        :param from_disk: Flag to choose between loading language resources from disk or using
+        dictionary in RAM. Option provided to save RAM for API.
         """
 
         # Set the language for the articles
@@ -93,8 +99,12 @@ class Preprocessor:
             self.topic_dictionary = pickle.load(f)
 
         # Used when mapping links in the Wikitext to their underlying QIDs
-        with open(RESOURCE_PATH + language + '/title_qid_mappings.pickle', 'rb') as f:
-            self.title_qid_mapping = pickle.load(f)
+        if from_disk:
+            self.title_qid_mapping = PlyvelDictInterface(
+                RESOURCE_PATH + language + '/title_qid_mappings.db')
+        else:
+            with open(RESOURCE_PATH + language + '/title_qid_mappings.pickle', 'rb') as f:
+                self.title_qid_mapping = pickle.load(f)
 
         # Get our javascript context started
         self.js_ctx = py_mini_racer.MiniRacer()
@@ -104,18 +114,25 @@ class Preprocessor:
         self.js_ctx.eval(library)
 
         # Used when densifying articles with non-existing links
-        with open(RESOURCE_PATH + language + '/qid_mappings.pickle', 'rb') as f:
-            self.anchors = pickle.load(f)
+        if from_disk:
+            self.anchors = PlyvelDictInterface(RESOURCE_PATH + language + '/qid_mappings.db')
+        else:
+            with open(RESOURCE_PATH + language + '/qid_mappings.pickle', 'rb') as f:
+                self.anchors = pickle.load(f)
 
         # Matrix factorization used for disambiguating ambiguous anchors
-        # NOTE: these are accessed from disk using mmap
+        # NOTE: these are accessed from disk using memmap
         self.users = np.load(RESOURCE_PATH + language + '/users.npy', mmap_mode='r')
         self.products = np.load(RESOURCE_PATH + language + '/products.npy', mmap_mode='r')
 
         # This contains the matrix indices in the factorization for articles
         # I.e., mapping from QID -> Index in matrix factorization
-        with open(RESOURCE_PATH + language + '/matrix_positions.pickle', 'rb') as f:
-            self.matrix_positions = pickle.load(f)
+        if from_disk:
+            self.matrix_positions = PlyvelDictInterface(
+                RESOURCE_PATH + language + '/matrix_positions.db')
+        else:
+            with open(RESOURCE_PATH + language + '/matrix_positions.pickle', 'rb') as f:
+                self.matrix_positions = pickle.load(f)
 
     @staticmethod
     def extract_links(raw_texts: List[str], title_qid_mapping: Dict,
@@ -144,9 +161,7 @@ class Preprocessor:
             filtered_texts.append(filtered.lower())
 
         # Parse and retrieve plaintext of articles without wikicode
-        clean_texts = js_ctx.eval(f'var texts = {str(list(filtered_texts))}\n' +
-                                  'var parsed = texts.map((text) => wtf(text))\n' +
-                                  'parsed.map((parse) => parse.text())')
+        clean_texts = [mw.parse(text).strip_code() for text in filtered_texts]
 
         # The links are currently represented as the titles of the articles
         # Iterate over them and retrieve their QIDs instead
@@ -154,7 +169,7 @@ class Preprocessor:
         for link_set in links:
             qid_links_article = []
             for title in link_set:
-                if title is not None:
+                if title is not None and title != '':
                     qid = Preprocessor.get_qid_from_titles([title], title_qid_mapping)[0]
                     if qid is not None:
                         qid_links_article.append(qid)
@@ -213,6 +228,95 @@ class Preprocessor:
         return ngrams
 
     @staticmethod
+    def create_embedding(products: np.array, existing_links: List[str], matrix_indices: dict) \
+            -> np.array:
+        """
+        Computes embedding vector u for given links using the latent embeddings for the product
+        matrix V. It is computed using the dot product against V. Sparse matrices are used to
+        increase efficiency of matrix product.
+
+        :param products: The vector embeddings for the candidate articles in a matrix
+        factorization model
+        :param existing_links: The links that were already present in the document explicitly
+        :param matrix_indices: Mappings between qids and matrix indices for matrix factorization
+        :return: Computed embedding u
+        """
+
+        # Compute adjacency vector
+        N, M = products.shape
+        a = np.zeros(N)
+        dense_i = OrderedDict()
+        for link in existing_links:
+            index = matrix_indices.get(link)
+            if index is not None:
+                # Increment adjacency count
+                a[index] += 1
+
+                # Keep track of all dense entries
+                dense_i[index] = 1
+
+        # Create sparse matrix using only dense rows
+        dense_i = list(dense_i.keys())
+        dense_rows = np.broadcast_to(dense_i, (M, len(dense_i))).flat
+        dense_cols = np.broadcast_to(np.arange(M), (len(dense_i), M)).flat
+        dense = products[dense_i].flatten()
+        sparse_V = sparse.csr_matrix((dense, (dense_rows, dense_cols)),
+                                     shape=products.shape)
+
+        # Compute embedding using product
+        # Efficient because of csr_matrix implementation from scipy
+        u = sparse_V.T.dot(a)
+        return u
+
+    @staticmethod
+    def disambiguate_phrases(qids: List[List[str]], u: np.array, products: np.array,
+                             matrix_indices: dict) -> List[str]:
+        """
+        Selects the best candidate for a set of phrases. Expects there to be more than one set
+        of links to disambiguate - meaning that multiple anchors can be disambiguated
+        simultaneously.
+
+        :param qids: The candidate anchors for all phrases to process.
+        :param u: Latent embedding of source article
+        :param products: The vector embeddings for the candidate articles in a matrix
+        factorization model
+        :param matrix_indices: Mappings between qids and matrix indices for matrix factorization
+        :return: The chosen links
+        """
+
+        # Find the candidate links
+        candidates_ensemble = []
+        for candidates in qids:
+            cs = dict()
+            for candidate in candidates:
+
+                # Skip if candidate article not in matrix factorization
+                value = matrix_indices.get(candidate)
+                if value:
+                    cs[candidate] = value
+
+            candidates_ensemble.append(cs)
+
+        all_indices = np.array([index for cs in candidates_ensemble for index in cs.values()])
+
+        # Only access the rows of interest once to save time on loading from disk
+        unique_indices = np.unique(all_indices)
+        candidate_products = products[unique_indices]
+        unique_scores = u @ candidate_products.T
+        unique_scores = {m_index: unique_scores[i] for i, m_index in enumerate(unique_indices)}
+
+        scores = [unique_scores[i] for i in all_indices]
+
+        # Select best candidate for each phrase
+        best_candidates = []
+        start_index = 0
+        for cs in candidates_ensemble:
+            candidates = list(cs.keys())
+            phrase_scores = scores[start_index:start_index+len(candidates)]
+            best_candidates.append(candidates[np.argmax(phrase_scores)])
+        return best_candidates
+
+    @staticmethod
     def get_links(document: str, anchors: Dict, users: np.array, products: np.array,
                   matrix_indices: Dict, wikidata_id: str, existing_links: List[str]) -> List[str]:
         """
@@ -242,24 +346,9 @@ class Preprocessor:
         # We only project it onto the columns of V which will not be 0 since
         # our link vector will be sparse
         else:
+            u = Preprocessor.create_embedding(products, existing_links, matrix_indices)
 
-            # Compute adjacency vector
-            N = products.shape[0]
-            a = np.zeros(N)
-            for link in existing_links:
-                index = matrix_indices.get(link)
-                if index is not None:
-                    # Increment adjacency count
-                    a[index] += 1
-
-            # Create sparse matrix using needed rows
-            sparse_V = np.zeros(products.shape)
-            cis = np.nonzero(a)
-            sparse_V[cis] = products[cis]
-
-            # Compute embedding using product
-            u = a @ sparse_V
-
+        ambiguous_anchors = []
         for chunk in chunks:
 
             # Create links by computing n-grams from n=4...1 and anchoring on the biggest
@@ -275,27 +364,21 @@ class Preprocessor:
                     if qids is None:
                         continue
 
-                    # Disambiguate phrase
-                    # NOTE: skips disambiguation of source article isn't in the matrix factorization
+                    # Phrase needs to be disambiguated
                     elif len(qids) > 1:
-
-                        # Find the candidate links
-                        candidates = [(c, matrix_indices.get(c))
-                                      for c in qids if matrix_indices.get(c) is not None]
-
-                        cs = [c for _, c in candidates]
-                        candidate_products = products[cs]
-                        scores = u @ candidate_products.T
-
-                        # Select best candidate
-                        best_candidate = candidates[np.argmax(scores)][0]
-                        found_anchors.append(best_candidate)
-                        chunk.replace(ng, " @@ ")
+                        ambiguous_anchors.append(qids)
 
                     # Append found non-ambiguous anchor
                     elif qids is not None:
                         found_anchors.append(qids[0])
-                        chunk.replace(ng, " @@ ")
+
+                    # Remove phrase from text
+                    chunk.replace(ng, " @@ ")
+
+        # Disambiguate phrases in bulk
+        if ambiguous_anchors:
+            found_anchors += Preprocessor.disambiguate_phrases(ambiguous_anchors, u,
+                                                               products, matrix_indices)
 
         return found_anchors
 
@@ -343,3 +426,47 @@ class Preprocessor:
             articles.append(Article(revision, qid_links[i], bol, self.language))
 
         return articles
+
+
+class PlyvelDictInterface:
+    """
+    Provides an interface to Plyvel which behaves more like a regular python dictionary.
+    Because Plyvel requires you to manually create a Bytes object representation of each
+    key and value, this class allows you to access it as if this were not the case by automatically
+    encoding and decoding the keys and values.
+    """
+
+    def __init__(self, db_path: str):
+        self.dict = plyvel.DB(db_path)
+
+    def get(self, key: str) -> Union[str, list, None]:
+        """
+        Dict-like get-access to plyvel database.
+
+        :param key: Key index to use for accessing dictionary.
+        :return: Value associated with key.
+        """
+        if key is None:
+            return None
+
+        # Access using bytes object
+        key = str.encode(key)
+        value = self.dict.get(key)
+
+        # Ensure value exists and decode
+        if value is not None:
+            value = value.decode()
+
+            # Further decode depending on representation
+            if value.isdigit():
+                value = int(value)
+
+            # List represented using delimiter
+            elif ';' in value:
+                value = value.split(';')
+
+                # Ensure output will still be a list in case of single element
+                if len(value) == 2 and value[1] == '':
+                    value = [value[0]]
+
+        return value
