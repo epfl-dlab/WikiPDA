@@ -15,7 +15,6 @@ import scipy.sparse as sparse
 from collections import OrderedDict
 import mwparserfromhell as mw
 
-from py_mini_racer import py_mini_racer
 import requests
 
 
@@ -106,13 +105,6 @@ class Preprocessor:
             with open(RESOURCE_PATH + language + '/title_qid_mappings.pickle', 'rb') as f:
                 self.title_qid_mapping = pickle.load(f)
 
-        # Get our javascript context started
-        self.js_ctx = py_mini_racer.MiniRacer()
-
-        # Load wtf_wikipedia (wikitext parsing library)
-        library = open(os.path.join(os.path.dirname(__file__), 'wtf_wikipedia.js'), 'rb').read()
-        self.js_ctx.eval(library)
-
         # Used when densifying articles with non-existing links
         if from_disk:
             self.anchors = PlyvelDictInterface(RESOURCE_PATH + language + '/qid_mappings.db')
@@ -135,15 +127,13 @@ class Preprocessor:
                 self.matrix_positions = pickle.load(f)
 
     @staticmethod
-    def extract_links(raw_texts: List[str], title_qid_mapping: Dict,
-                      js_ctx: py_mini_racer.MiniRacer) -> Tuple[List[List[str]], List[List[str]]]:
+    def extract_links(raw_texts: List[str], title_qid_mapping: Dict) \
+            -> Tuple[List[List[str]], List[List[str]]]:
         """
         Takes a given wikitext, extracts the links and then parses that text.
 
         :param raw_texts: The wikitext representation of Wikipedia articles.
         :param title_qid_mapping: Mapping between the titles and QIDs of Wikipedia articles.
-        :param js_ctx: context that allows for running javascript. Needs to have executed the
-        wtf_wikipedia library beforehand.
         :return: The QIDs and texts without wikicode.
         """
 
@@ -402,8 +392,7 @@ class Preprocessor:
             qids = [None] * len(wikitexts)
 
         # Extract existing links
-        qid_links, clean_texts = Preprocessor.extract_links(
-            wikitexts, self.title_qid_mapping, self.js_ctx)
+        qid_links, clean_texts = Preprocessor.extract_links(wikitexts, self.title_qid_mapping)
 
         articles = []
         for i, clean_text in enumerate(clean_texts):
