@@ -234,29 +234,28 @@ class Preprocessor:
 
         # Compute adjacency vector
         N, M = products.shape
-        a = np.zeros(N)
+        a = OrderedDict()
         dense_i = OrderedDict()
         for link in existing_links:
             index = matrix_indices.get(link)
             if index is not None:
                 # Increment adjacency count
-                a[index] += 1
+                if index not in a:
+                    a[index] = 1
+                else:
+                    a[index] += 1
 
                 # Keep track of all dense entries
                 dense_i[index] = 1
 
         # Create sparse matrix using only dense rows
         dense_i = list(dense_i.keys())
-        dense_rows = np.broadcast_to(dense_i, (M, len(dense_i))).flat
-        dense_cols = np.broadcast_to(np.arange(M), (len(dense_i), M)).flat
-        dense = products[dense_i].flatten()
-        sparse_V = sparse.csr_matrix((dense, (dense_rows, dense_cols)),
-                                     shape=products.shape)
+        dense = products[dense_i]
 
-        # Compute embedding using product
-        # Efficient because of csr_matrix implementation from scipy
-        u = sparse_V.T.dot(a)
-        return u
+        # Compute embedding using dense product
+        a = np.array(list(a.values()))
+        u = a @ dense
+        return u.flatten()
 
     @staticmethod
     def disambiguate_phrases(qids: List[List[str]], u: np.array, products: np.array,
