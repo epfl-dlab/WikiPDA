@@ -5,9 +5,9 @@ Module contains the setup and configuration of the API itself.
 from flask import Flask, Blueprint
 from flask_restful import Api
 from flasgger import Swagger
-from resources.embedding import TopicEmbeddingsRevision, TopicEmbeddingsWikitext
-from resources.text_category import CategoryPredictionsRevision, CategoryPredictionsWikitext
-from resources.topic_distribution import TopicDistribution
+from common.resources.embedding import TopicEmbeddingsRevision, TopicEmbeddingsWikitext
+from common.resources.text_category import CategoryPredictionsRevision, CategoryPredictionsWikitext
+from common.resources.topic_distribution import TopicDistribution
 from common.util import RevisionListConverter
 from swagger_config import SWAGGER_CONFIG
 from flask_config import WikiPDAConfig
@@ -33,4 +33,4 @@ app.register_blueprint(api_bp)
 
 # This is for when debugging the API. To deploy it look at the instructions in the README
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)

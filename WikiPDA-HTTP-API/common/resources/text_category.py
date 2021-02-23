@@ -7,7 +7,7 @@ TextClassifier module of the library to also produce a category predictions for 
 from flask import request
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES
-from common.resources import PREPROCESSORS, LDA_MODELS, TEXT_CLASSIFIER
+from common.resource_instances import PREPROCESSORS, LDA_MODELS, TEXT_CLASSIFIER
 
 from wikipda.article import fetch_article_data
 

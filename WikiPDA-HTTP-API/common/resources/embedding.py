@@ -7,7 +7,7 @@ WikiPDA library.
 from flask import request
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES, SUPPORTED_LDA
-from common.resources import PREPROCESSORS, LDA_MODELS
+from common.resource_instances import PREPROCESSORS, LDA_MODELS
 
 from wikipda.article import fetch_article_data
 

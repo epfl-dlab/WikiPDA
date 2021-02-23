@@ -4,7 +4,7 @@ the topics in a given LDA model.
 """
 
 from flask_restful import Resource, reqparse
-from common.resources import LDA_MODELS
+from common.resource_instances import LDA_MODELS
 
 
 class TopicDistribution(Resource):
