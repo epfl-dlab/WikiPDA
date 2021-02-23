@@ -42,7 +42,7 @@ p = Preprocessor('en')
 articles = p.load(wikitexts, revisions, titles, enrich=True)
 
 # Produce embeddings
-model = LDAModel()
+model = LDAModel(k=300)
 embeddings = model.get_embeddings(articles)
 
 # predict the categories of the texts
