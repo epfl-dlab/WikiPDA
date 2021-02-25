@@ -10,7 +10,7 @@ to do the following:
 ## User Manual
 ### Installing
 Since the package isn't published yet you can just run the following command to install
-the package: `pip install git+https://github.com/epfl-dlab/wikipda-lib.git`
+the package: `pip install "git+https://github.com/epfl-dlab/wikipda.git#subdirectory=WikiPDA-Lib"`
 
 In order to use this API you first need to download all the resources
 required. These are available in the following 
@@ -20,8 +20,8 @@ Here is what you need to do:
 2. Add the resources from the drive document in a a subfolder called `lang`.
     1. E.g., for English you would have to download the `en.tar.gz` tarball from the
 drive folder. 
-    2. Then extract it to `wikipda_data/lang/en`.
-3. You then need to put the following files/folders from drive in `wikipda_data`:
+    2. Then extract it to `~/wikipda_data/lang/en`.
+3. You then need to put the following files/folders from drive in `~/wikipda_data`:
     - `classifiers`
     - `LDA_models`
     - `topic_dict.pkl`
