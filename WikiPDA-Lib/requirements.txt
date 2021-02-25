@@ -2,5 +2,5 @@ gensim
 requests
 sklearn
 xgboost
-plyvel
 pyspark
+sqlitedict

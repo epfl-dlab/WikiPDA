@@ -7,7 +7,7 @@ import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import collect_set
 from pyspark.mllib.recommendation import MatrixFactorizationModel
-import plyvel
+from sqlitedict import SqliteDict
 import pickle
 import os
 from tqdm import tqdm
@@ -18,37 +18,21 @@ import shutil
 import re
 
 
-def write_db_dictionary(path, dictionary, key_encoding=str.encode, value_encoding=str.encode, batch_size=1000000):
+def write_db_dictionary(path, dictionary: dict):
     """
-    Helper function which writes to a plyvel database in batches using a generator function.
+    Helper function which writes to a sqlite key-value store database.
     Also writes the given file as a dictionary at the same time to save time.
-    :param db_path: Path on disk to the plyvel database.
+    :param db_path: Path on disk to the sqlite database.
     :param dictionary: The dictionary to dump.
-    :param key_encoding: The function to call on the key to create a Bytes object.
-    :param value_encoding: The function to call on the value to create a Bytes object.
-    :param batch_size: How many items to write at once to the database.
     """
-    db = plyvel.DB(path + '.db', create_if_missing=True)
-    with db.write_batch() as wb:
-        i = 0
+    # Write to sqlite
+    with SqliteDict(path + '.sqlite') as d:
         for key, value in dictionary.items():
-
-            wb.put(key_encoding(key), value_encoding(value))
-
-            # Poor man's modulo n
-            i += 1
-            if i == batch_size:
-                wb.write()
-                i = 0
-
-        # Write last remaining batch
-        wb.write()
-    db.close()
+            d[key] = value
 
     # Now also dump the pickled version of the dictionary itself
     with open(path + '.pickle', 'wb') as f:
         pickle.dump(dictionary, f)
-
 
 
 def make_tarfile(output_filename: str, source_dir: str):
@@ -115,16 +99,10 @@ def create_anchors(spark: SparkSession, parquet_path: str, beta_path: str, outpu
     filtered_anchors = anchors.join(beta_filter, 'anchor')
     candidates = filtered_anchors.filter("anchor not rlike '^[0-9]+$'").where("LENGTH(anchor)>0") \
         .groupBy("anchor").agg(collect_set("destination_qid").alias("candidates"))
-    anchor_mapping = {row.anchor:row.candidates for row in candidates.rdd.toLocalIterator()}
+    anchor_mapping = {row.anchor: row.candidates for row in candidates.rdd.toLocalIterator()}
 
     # Dump mapping
-    def encode_as_list(elements):
-
-        # To make sure we can still decode as list
-        if len(elements) < 2:
-            return str.encode(elements[0] + ';')
-        return str.encode(';'.join(elements))
-    write_db_dictionary(output_path, anchor_mapping, value_encoding=encode_as_list)
+    write_db_dictionary(output_path, anchor_mapping)
     del anchor_mapping
 
 
@@ -141,7 +119,7 @@ def dump_matrix_positions(spark: SparkSession, matrix_positions_path: str, out_p
                          for matrix_index, qid in matrix_positions.rdd.toLocalIterator()}
 
     # Dump mapping
-    write_db_dictionary(out_path, positions_mapping, value_encoding=lambda x: str.encode(str(x)))
+    write_db_dictionary(out_path, positions_mapping)
     del positions_mapping
 
 
