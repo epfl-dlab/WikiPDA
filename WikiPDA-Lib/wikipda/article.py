@@ -5,13 +5,11 @@ and bag-of-links representation of the links for each article represented as an 
 """
 
 import pickle
-import plyvel
+from sqlitedict import SqliteDict
 import re
-import os
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict
 from wikipda.settings import TOPIC_DICT_PATH, RESOURCE_PATH
 import numpy as np
-import scipy.sparse as sparse
 from collections import OrderedDict
 import mwparserfromhell as mw
 
@@ -99,7 +97,7 @@ class Preprocessor:
 
         # Used when mapping links in the Wikitext to their underlying QIDs
         if from_disk:
-            self.title_qid_mapping = PlyvelDictInterface(
+            self.title_qid_mapping = SqliteDict(
                 RESOURCE_PATH + language + '/title_qid_mappings.db')
         else:
             with open(RESOURCE_PATH + language + '/title_qid_mappings.pickle', 'rb') as f:
@@ -107,7 +105,7 @@ class Preprocessor:
 
         # Used when densifying articles with non-existing links
         if from_disk:
-            self.anchors = PlyvelDictInterface(RESOURCE_PATH + language + '/qid_mappings.db')
+            self.anchors = SqliteDict(RESOURCE_PATH + language + '/qid_mappings.db')
         else:
             with open(RESOURCE_PATH + language + '/qid_mappings.pickle', 'rb') as f:
                 self.anchors = pickle.load(f)
@@ -120,7 +118,7 @@ class Preprocessor:
         # This contains the matrix indices in the factorization for articles
         # I.e., mapping from QID -> Index in matrix factorization
         if from_disk:
-            self.matrix_positions = PlyvelDictInterface(
+            self.matrix_positions = SqliteDict(
                 RESOURCE_PATH + language + '/matrix_positions.db')
         else:
             with open(RESOURCE_PATH + language + '/matrix_positions.pickle', 'rb') as f:
@@ -414,47 +412,3 @@ class Preprocessor:
             articles.append(Article(revision, qid_links[i], bol, self.language))
 
         return articles
-
-
-class PlyvelDictInterface:
-    """
-    Provides an interface to Plyvel which behaves more like a regular python dictionary.
-    Because Plyvel requires you to manually create a Bytes object representation of each
-    key and value, this class allows you to access it as if this were not the case by automatically
-    encoding and decoding the keys and values.
-    """
-
-    def __init__(self, db_path: str):
-        self.dict = plyvel.DB(db_path)
-
-    def get(self, key: str) -> Union[str, list, None]:
-        """
-        Dict-like get-access to plyvel database.
-
-        :param key: Key index to use for accessing dictionary.
-        :return: Value associated with key.
-        """
-        if key is None:
-            return None
-
-        # Access using bytes object
-        key = str.encode(key)
-        value = self.dict.get(key)
-
-        # Ensure value exists and decode
-        if value is not None:
-            value = value.decode()
-
-            # Further decode depending on representation
-            if value.isdigit():
-                value = int(value)
-
-            # List represented using delimiter
-            elif ';' in value:
-                value = value.split(';')
-
-                # Ensure output will still be a list in case of single element
-                if len(value) == 2 and value[1] == '':
-                    value = [value[0]]
-
-        return value
