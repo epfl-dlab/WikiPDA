@@ -5,7 +5,7 @@ and bag-of-links representation of the links for each article represented as an 
 """
 
 import pickle
-from sqlitedict import SqliteDict
+import sqlite3
 import re
 from typing import List, Tuple, Dict
 from wikipda.settings import TOPIC_DICT_PATH, RESOURCE_PATH
@@ -97,15 +97,15 @@ class Preprocessor:
 
         # Used when mapping links in the Wikitext to their underlying QIDs
         if from_disk:
-            self.title_qid_mapping = SqliteDict(
-                RESOURCE_PATH + language + '/title_qid_mappings.db')
+            self.title_qid_mapping = FastSqliteDict(
+                RESOURCE_PATH + language + '/title_qid_mappings.sqlite')
         else:
             with open(RESOURCE_PATH + language + '/title_qid_mappings.pickle', 'rb') as f:
                 self.title_qid_mapping = pickle.load(f)
 
         # Used when densifying articles with non-existing links
         if from_disk:
-            self.anchors = SqliteDict(RESOURCE_PATH + language + '/qid_mappings.db')
+            self.anchors = FastSqliteDict(RESOURCE_PATH + language + '/qid_mappings.sqlite')
         else:
             with open(RESOURCE_PATH + language + '/qid_mappings.pickle', 'rb') as f:
                 self.anchors = pickle.load(f)
@@ -118,8 +118,7 @@ class Preprocessor:
         # This contains the matrix indices in the factorization for articles
         # I.e., mapping from QID -> Index in matrix factorization
         if from_disk:
-            self.matrix_positions = SqliteDict(
-                RESOURCE_PATH + language + '/matrix_positions.db')
+            self.matrix_positions = FastSqliteDict(RESOURCE_PATH + language + '/matrix_positions.sqlite')
         else:
             with open(RESOURCE_PATH + language + '/matrix_positions.pickle', 'rb') as f:
                 self.matrix_positions = pickle.load(f)
@@ -323,7 +322,9 @@ class Preprocessor:
         # Iterate and process the chunks of the document
         chunks = Preprocessor.get_chunks(document)
         found_anchors = []
-        mi = matrix_indices.get(wikidata_id)
+        mi = None
+        if wikidata_id is not None:
+            mi = matrix_indices.get(wikidata_id)
 
         # Get embedding if already present
         if mi is not None:
@@ -412,3 +413,21 @@ class Preprocessor:
             articles.append(Article(revision, qid_links[i], bol, self.language))
 
         return articles
+
+
+class FastSqliteDict:
+
+    def __init__(self, db_path):
+        self.conn = sqlite3.connect(db_path)
+        self.c = self.conn.cursor()
+        self.c.execute('PRAGMA cache_size = -10000')
+        self.c.execute('PRAGMA journal_mode = OFF')
+        self.c.execute('PRAGMA synchronous = OFF')
+        self.c.execute('PRAGMA locking_mode = EXCLUSIVE')
+
+    def __getitem__(self, key):
+        value = self.c.execute(f'SELECT value FROM unnamed WHERE key=?', (key,)).fetchone()
+        return pickle.loads(value[0]) if value else value
+
+    def get(self, key):
+        return self.__getitem__(key)
