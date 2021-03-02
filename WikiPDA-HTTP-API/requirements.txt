@@ -4,4 +4,4 @@ flasgger
 gunicorn
 numpy
 werkzeug
-wikipda
+git+https://github.com/epfl-dlab/wikipda.git#subdirectory=WikiPDA-Lib
