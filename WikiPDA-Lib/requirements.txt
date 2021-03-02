@@ -1,4 +1,5 @@
 gensim
+mwparserfromhell
 requests
 sklearn
 xgboost
