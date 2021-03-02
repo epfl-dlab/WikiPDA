@@ -22,7 +22,7 @@ class TopicDistribution(Resource):
                 default: 300
 
               - name: num_links
-                description: the amount of link probabilities to return for the given distributions
+                description: the amount of link probabilities to return for the given distributions (max 20)
                 in: query
                 type: int
                 required: false
@@ -50,6 +50,8 @@ class TopicDistribution(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('num_links',
                             type=int,
+                            default=10,
+                            choices=[i for i in range(1, 21)],
                             required=False)
 
         args = parser.parse_args()
