@@ -33,4 +33,4 @@ app.register_blueprint(api_bp)
 
 # This is for when debugging the API. To deploy it look at the instructions in the README
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True)

@@ -4,7 +4,7 @@ This resource takes the articles and processes them through the WikiPDA pipeline
 WikiPDA library.
 """
 
-from flask import request
+from flask import request, abort, make_response, jsonify
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES, SUPPORTED_LDA
 from common.resource_instances import PREPROCESSORS, LDA_MODELS
@@ -17,11 +17,12 @@ class TopicEmbeddingsRevision(Resource):
     def get(self, revids):
         """
         Endpoint allows getting the topic embedding for a given wikipedia article,
-        specified using the revision ID(s).
+        specified using the revision ID(s). Each request is limited to a maximum of
+        15 different articles at a time.
             ---
             parameters:
               - name: revids
-                description: Wikipedia revision ids, separated using the | token.
+                description: Wikipedia revision ids, separated using the | token (max 15).
                 in: path
                 type: string
                 required: true
@@ -65,6 +66,12 @@ class TopicEmbeddingsRevision(Resource):
                           items:
                             type: number
        """
+
+        # Make sure users do not hog too many resources.
+        if len(revids) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
+
         parser = reqparse.RequestParser()
         parser.add_argument('lang',
                             choices=SUPPORTED_LANGUAGES,
@@ -101,7 +108,8 @@ class TopicEmbeddingsWikitext(Resource):
 
     def post(self):
         """
-        Endpoint allows getting the topic embedding for a given set of Wikitexts.
+        Endpoint allows getting the topic embedding for a given set of Wikitexts. Each request is
+        limited to a maximum of 15 different articles at a time.
             ---
             parameters:
 
@@ -176,6 +184,11 @@ class TopicEmbeddingsWikitext(Resource):
 
         # User should provide the Wikitexts they want to have processed in request
         wikitexts = request.json['wikitexts']
+
+        # Make sure users do not hog too many resources.
+        if len(wikitexts) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
 
         # Load and process articles
         articles = PREPROCESSORS[args.lang].load(wikitexts, enrich=args.enrich)

@@ -12,3 +12,9 @@ SUPPORTED_LANGUAGES = ['en']
 # The LDA models supported (the entries represent the k configured for the given model).
 # Again these need to be downloaded from the drive folder.
 SUPPORTED_LDA = [300]
+
+# This is the maximum number of articles processed in each request.
+LIMIT_ARTICLES = 10
+
+# This is the maximum number of links for each topic returned by the topic_distribution endpoint.
+LIMIT_LINKS = 10

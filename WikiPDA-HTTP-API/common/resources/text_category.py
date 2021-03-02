@@ -4,7 +4,7 @@ Wikipedia articles. It essentially does the same thing as embedding.py but also 
 TextClassifier module of the library to also produce a category predictions for the given article.
 """
 
-from flask import request
+from flask import request, abort, make_response, jsonify
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES
 from common.resource_instances import PREPROCESSORS, LDA_MODELS, TEXT_CLASSIFIER
@@ -18,11 +18,12 @@ class CategoryPredictionsRevision(Resource):
         """
         Endpoint allows getting the text category prediction for a given wikipedia article,
         specified using the revision ID. NOTE: only available for the LDA model with the highest
-        k configured (k=300).
+        k configured (k=300). Each request is limited to a maximum of 15 different articles at a
+        time.
             ---
             parameters:
               - name: revids
-                description: wikipedia revision ids
+                description: Wikipedia revision ids, separated using the | token (max 15).
                 in: path
                 type: string
                 required: true
@@ -56,6 +57,12 @@ class CategoryPredictionsRevision(Resource):
                       items:
                         type: string
        """
+
+        # Make sure users do not hog too many resources.
+        if len(revids) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
+
         parser = reqparse.RequestParser()
         parser.add_argument('lang',
                             choices=SUPPORTED_LANGUAGES,
@@ -88,10 +95,10 @@ class CategoryPredictionsWikitext(Resource):
 
     def post(self):
         """
-        Endpoint allows getting the text category prediction for a given set of Wikitexts.
+        Endpoint allows getting the text category prediction for a given set of Wikitexts. Each
+        request is limited to a maximum of 15 different articles at a time.
             ---
             parameters:
-
               - name: wikitexts
                 in: body
                 required: true
@@ -146,6 +153,11 @@ class CategoryPredictionsWikitext(Resource):
 
         # User should provide the Wikitexts they want to have processed in request
         wikitexts = request.json['wikitexts']
+
+        # Make sure users do not hog too many resources.
+        if len(wikitexts) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
 
         # Load and process articles
         articles = PREPROCESSORS[args.lang].load(wikitexts, enrich=args.enrich)
