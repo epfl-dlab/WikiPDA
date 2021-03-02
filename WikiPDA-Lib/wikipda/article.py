@@ -418,7 +418,7 @@ class Preprocessor:
 class FastSqliteDict:
 
     def __init__(self, db_path):
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.c = self.conn.cursor()
         self.c.execute('PRAGMA cache_size = -10000')
         self.c.execute('PRAGMA journal_mode = OFF')
