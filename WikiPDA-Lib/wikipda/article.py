@@ -8,7 +8,7 @@ import pickle
 import sqlite3
 import re
 from typing import List, Tuple, Dict
-from wikipda.settings import TOPIC_DICT_PATH, RESOURCE_PATH
+from wikipda.settings import DATA_DIR, RESOURCE_PATH
 import numpy as np
 from collections import OrderedDict
 import mwparserfromhell as mw
@@ -63,11 +63,10 @@ class Article:
     step of the WikiPDA pipeline.
     """
 
-    def __init__(self, revision_id, links, bol, language):
+    def __init__(self, revision_id, links, language):
         self.revision_id = revision_id
-        self.language = language
         self.links = links
-        self.bol = bol
+        self.language = language
 
 
 class Preprocessor:
@@ -91,9 +90,6 @@ class Preprocessor:
         # Set the language for the articles
         self.language = language
 
-        # Used for creating the bag-of-links representation later
-        with open(TOPIC_DICT_PATH, 'rb') as f:
-            self.topic_dictionary = pickle.load(f)
 
         # Used when mapping links in the Wikitext to their underlying QIDs
         if from_disk:
@@ -405,14 +401,25 @@ class Preprocessor:
                                                            qids[i],
                                                            qid_links[i]))
 
-            # Bag links
-            bol = self.topic_dictionary.doc2bow(qid_links[i])
-
             # Article is ready
             revision = revisions[i] if revisions is not None else 'NA'
-            articles.append(Article(revision, qid_links[i], bol, self.language))
+            articles.append(Article(revision, qid_links[i], self.language))
 
         return articles
+
+
+class Bagger:
+
+    def __init__(self):
+        with open(DATA_DIR + 'topic_dict.pkl', 'rb') as f:
+            self.topic_dictionary = pickle.load(f)
+
+    def bag(self, articles: List[Article]):
+        bols = []
+        for article in articles:
+            bols.append(self.topic_dictionary.doc2bow(article.links))
+
+        return bols
 
 
 class FastSqliteDict:

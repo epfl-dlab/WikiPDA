@@ -7,7 +7,7 @@ TextClassifier module of the library to also produce a category predictions for 
 from flask import request, abort, make_response, jsonify
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES
-from common.resource_instances import PREPROCESSORS, LDA_MODELS, TEXT_CLASSIFIER
+from common.resource_instances import PREPROCESSORS, BAGGER, LDA_MODELS, TEXT_CLASSIFIER
 
 from wikipda.article import fetch_article_data
 
@@ -80,11 +80,14 @@ class CategoryPredictionsRevision(Resource):
         titles, revisions, wikitexts = fetch_article_data(revids, args.lang)
         articles = PREPROCESSORS[args.lang].load(wikitexts, revisions, titles, enrich=args.enrich)
 
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
         # Load model
         model = LDA_MODELS[300]
 
         # Produce embeddings
-        embeddings = model.get_embeddings(articles)
+        embeddings = model.get_embeddings(bols)
 
         # Produce category predictions
         text_categories = TEXT_CLASSIFIER.predict_category(embeddings)
@@ -162,11 +165,14 @@ class CategoryPredictionsWikitext(Resource):
         # Load and process articles
         articles = PREPROCESSORS[args.lang].load(wikitexts, enrich=args.enrich)
 
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
         # Load model
         model = LDA_MODELS[300]
 
         # Produce embeddings
-        embeddings = model.get_embeddings(articles)
+        embeddings = model.get_embeddings(bols)
 
         # Produce category predictions
         text_categories = TEXT_CLASSIFIER.predict_category(embeddings)

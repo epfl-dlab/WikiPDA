@@ -7,7 +7,7 @@ WikiPDA library.
 from flask import request, abort, make_response, jsonify
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES, SUPPORTED_LDA
-from common.resource_instances import PREPROCESSORS, LDA_MODELS
+from common.resource_instances import PREPROCESSORS, BAGGER, LDA_MODELS
 
 from wikipda.article import fetch_article_data
 
@@ -96,11 +96,14 @@ class TopicEmbeddingsRevision(Resource):
         titles, revisions, wikitexts = fetch_article_data(revids, args.lang)
         articles = PREPROCESSORS[args.lang].load(wikitexts, revisions, titles, enrich=args.enrich)
 
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
         # Load model
         model = LDA_MODELS[args.dimensions]
 
         # Produce embeddings
-        embeddings = model.get_embeddings(articles)
+        embeddings = model.get_embeddings(bols)
         return {'topic_embeddings': embeddings}
 
 
@@ -193,9 +196,12 @@ class TopicEmbeddingsWikitext(Resource):
         # Load and process articles
         articles = PREPROCESSORS[args.lang].load(wikitexts, enrich=args.enrich)
 
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
         # Load model
         model = LDA_MODELS[args.dimensions]
 
         # Produce embeddings
-        embeddings = model.get_embeddings(articles)
+        embeddings = model.get_embeddings(bols)
         return {'topic_embeddings': embeddings}

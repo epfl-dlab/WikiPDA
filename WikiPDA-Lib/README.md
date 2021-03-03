@@ -31,7 +31,7 @@ If you would prefer another placement of resources you can configure this in
 
 ## Example usage
 ```python
-from wikipda.article import Preprocessor, fetch_article_data
+from wikipda.article import Preprocessor, Bagger, fetch_article_data
 from wikipda.model import LDAModel, TextClassifier
 
 # Scrape rticles from Wikipedia using revision IDs
@@ -41,9 +41,13 @@ titles, revisions, wikitexts = fetch_article_data([985175359], 'en')
 p = Preprocessor('en')
 articles = p.load(wikitexts, revisions, titles, enrich=True)
 
+# Get the bag-of-links representations
+b = Bagger()
+bols = b.bag(articles)
+
 # Produce embeddings
 model = LDAModel(k=300)
-embeddings = model.get_embeddings(articles)
+embeddings = model.get_embeddings(bols)
 
 # predict the categories of the texts
 # NOTE: currently only supports topic embeddings with k=300

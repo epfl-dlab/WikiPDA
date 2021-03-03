@@ -1,4 +1,4 @@
-from wikipda.article import Preprocessor, fetch_article_data
+from wikipda.article import Preprocessor, Bagger, fetch_article_data
 from wikipda.model import LDAModel, TextClassifier
 
 # Scrape articles from Wikipedia using revision IDs
@@ -7,9 +7,14 @@ titles, revisions, wikitexts = fetch_article_data([985175359], 'en')
 # Also possible to process only wikitexts!
 p = Preprocessor('en')
 articles = p.load(wikitexts, revisions, titles, enrich=True)
+
+# Create bag-of-links representations
+b = Bagger()
+bols = b.bag(articles)
+
 # Produce embeddings
 model = LDAModel(k=40)
-embeddings = model.get_embeddings(articles)
+embeddings = model.get_embeddings(bols)
 
 # predict the categories of the texts
 # NOTE: currently only supports topic embeddings with k=300

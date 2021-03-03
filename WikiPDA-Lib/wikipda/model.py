@@ -56,6 +56,8 @@ class TextClassifier:
         :param embeddings: The topic embeddings produced using the LDAModel class
         :return: the one-hot encoded predictions for the category of the embeddings
         """
+        if len(embeddings) == 0:
+            return np.array([])
         probabilities = self.predict_proba(embeddings)
         predictions = np.zeros(probabilities.shape)
         for i, y in enumerate(probabilities):
@@ -67,7 +69,7 @@ class TextClassifier:
     def predict_category(self, embeddings: List[np.ndarray]) -> np.ndarray:
         """
         Produce category predictions and also return the predictions in plain text.
-        E.g.: 'STEM.Pjhysics' etc.
+        E.g.: 'STEM.Physics' etc.
 
         :param embeddings: The topic embeddings produced using the LDAModel class
         :return: The plain-text predicted text categories of the embeddings
@@ -132,16 +134,16 @@ class LDAModel:
 
         self.model = LdaMulticore.load(path + '/lda.model')
 
-    def get_embeddings(self, articles: List[Article]) -> List[np.ndarray]:
+    def get_embeddings(self, bols: List[List[str]]) -> List[np.ndarray]:
         """
         Produces topic embeddings for the given articles that have been run through the entire
         WikiPDA preprocessing pipeline.
 
-        :param articles: Article class instances to produce topic embeddings for
-        :return: The topic embeddings for the given Article instances.
+        :param bols: Bag-of-link representations to produce embeddings from.
+        :return: The topic embeddings for the given bags-of-links.
         """
         embeddings = []
-        for bol in [article.bol for article in articles]:
+        for bol in bols:
             embedding = self.model.get_document_topics(bol, minimum_probability=0)
             embeddings.append(embedding)
         return embeddings
