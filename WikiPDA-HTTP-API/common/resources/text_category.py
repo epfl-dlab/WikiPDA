@@ -177,4 +177,3 @@ class CategoryPredictionsWikitext(Resource):
         # Produce category predictions
         text_categories = TEXT_CLASSIFIER.predict_category(embeddings)
         return {'text_categories': text_categories.tolist()}
-
