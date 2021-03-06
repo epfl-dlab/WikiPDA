@@ -91,7 +91,7 @@ class CategoryPredictionsRevision(Resource):
 
         # Produce category predictions
         text_categories = TEXT_CLASSIFIER.predict_proba_labeled(embeddings, threshold=0.5)
-        return {'text_categories': text_categories}
+        return {'text_categories': sorted([{'label': k, 'probability': v} for k,v in text_categories[0].items()], key=lambda r: -r['probability'])}
 
 
 class CategoryPredictionsWikitext(Resource):
@@ -178,4 +178,4 @@ class CategoryPredictionsWikitext(Resource):
 
         # Produce category predictions
         text_categories = TEXT_CLASSIFIER.predict_proba_labeled(embeddings, threshold=0.5)
-        return {'text_categories': text_categories}
+        return {'text_categories': sorted([{'label': k, 'probability': v} for k,v in text_categories[0].items()], key=lambda r: -r['probability'])}
