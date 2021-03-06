@@ -7,11 +7,11 @@ from flask_restful import Resource, reqparse
 from common.resource_instances import LDA_MODELS
 
 
-class TopicDistribution(Resource):
+class TopicsQID(Resource):
 
     def get(self, k):
         """
-        Endpoint allows getting the most probable links for a given pretrained LDA model.
+        Endpoint allows getting the most probable QIDs for a given pretrained LDA model.
             ---
             parameters:
               - name: k

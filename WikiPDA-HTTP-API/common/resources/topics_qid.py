@@ -12,13 +12,12 @@ from common.resource_instances import PREPROCESSORS, BAGGER, LDA_MODELS
 from wikipda.article import fetch_article_data
 
 
-class TopicEmbeddingsRevision(Resource):
+class TopicsDistributionRevision(Resource):
 
     def get(self, revids):
         """
-        Endpoint allows getting the topic embedding for a given wikipedia article,
-        specified using the revision ID(s). Each request is limited to a maximum of
-        15 different articles at a time.
+        Returns the topic distribution for a provided set of Wikipedia revisions.
+        Each request is limited to a maximum of 15 different articles at a time.
             ---
             parameters:
               - name: revids
@@ -104,15 +103,15 @@ class TopicEmbeddingsRevision(Resource):
 
         # Produce embeddings
         embeddings = model.get_embeddings(bols)
-        return {'topic_embeddings': embeddings}
+        return {'topics_distribution': embeddings}
 
 
-class TopicEmbeddingsWikitext(Resource):
+class TopicsDistributionWikitext(Resource):
 
     def post(self):
         """
-        Endpoint allows getting the topic embedding for a given set of Wikitexts. Each request is
-        limited to a maximum of 15 different articles at a time.
+        Returns the topic distribution for a provided set of Wikicode documents.
+        Each request is limited to a maximum of 15 different articles at a time.
             ---
             parameters:
 
@@ -204,4 +203,4 @@ class TopicEmbeddingsWikitext(Resource):
 
         # Produce embeddings
         embeddings = model.get_embeddings(bols)
-        return {'topic_embeddings': embeddings}
+        return {'topics_distribution': embeddings}

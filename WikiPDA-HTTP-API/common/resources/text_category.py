@@ -1,6 +1,6 @@
 """
 This module contains the flask-restful resource definition for text-categories of different
-Wikipedia articles. It essentially does the same thing as embedding.py but also uses the
+Wikipedia articles. It essentially does the same thing as topics_qid.py but also uses the
 TextClassifier module of the library to also produce a category predictions for the given article.
 """
 
@@ -16,10 +16,10 @@ class CategoryPredictionsRevision(Resource):
 
     def get(self, revids):
         """
-        Endpoint allows getting the text category prediction for a given wikipedia article,
-        specified using the revision ID. NOTE: only available for the LDA model with the highest
-        k configured (k=300). Each request is limited to a maximum of 15 different articles at a
-        time.
+        Predict the ORES labels for a given Wikipedia article revision using a distribution of 300
+        topics learned by WikiPDA. It returns the labels sorted (descending) by their probability.
+        The labels with a probability greater than 0.5 are included in the output. Each request is
+        limited to a maximum of 15 different revisions at a time.
             ---
             parameters:
               - name: revids
@@ -98,8 +98,10 @@ class CategoryPredictionsWikitext(Resource):
 
     def post(self):
         """
-        Endpoint allows getting the text category prediction for a given set of Wikitexts. Each
-        request is limited to a maximum of 15 different articles at a time.
+        Predict the ORES labels for a given Wikipedia article revision using a distribution of 300
+        topics learned by WikiPDA. It returns the labels sorted (descending) by their probability.
+        The labels with a probability greater than 0.5 are included in the output. Each request is
+        limited to a maximum of 15 different revisions at a time.
             ---
             parameters:
               - name: wikitexts
