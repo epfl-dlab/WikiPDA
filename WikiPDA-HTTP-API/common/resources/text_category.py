@@ -90,8 +90,8 @@ class CategoryPredictionsRevision(Resource):
         embeddings = model.get_embeddings(bols)
 
         # Produce category predictions
-        text_categories = TEXT_CLASSIFIER.predict_category(embeddings)
-        return {'text_categories': text_categories.tolist()}
+        text_categories = TEXT_CLASSIFIER.predict_proba_labeled(embeddings, threshold=0.5)
+        return {'text_categories': text_categories}
 
 
 class CategoryPredictionsWikitext(Resource):
@@ -177,5 +177,5 @@ class CategoryPredictionsWikitext(Resource):
         embeddings = model.get_embeddings(bols)
 
         # Produce category predictions
-        text_categories = TEXT_CLASSIFIER.predict_category(embeddings)
-        return {'text_categories': text_categories.tolist()}
+        text_categories = TEXT_CLASSIFIER.predict_proba_labeled(embeddings, threshold=0.5)
+        return {'text_categories': text_categories}

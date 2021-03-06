@@ -5,8 +5,7 @@ articles run through the WikiPDA pre-processing pipeline.
 
 import os
 from wikipda.settings import CLASSIFIERS_PATH, LDA_MODEL_PATH
-from wikipda.article import Article
-from typing import List
+from typing import List, Dict
 
 from gensim.models.ldamulticore import LdaMulticore
 import numpy as np
@@ -81,6 +80,24 @@ class TextClassifier:
             categories[i] = self.text_categories[selected_index]
 
         return categories
+
+    def predict_proba_labeled(self, embeddings: List[np.ndarray], threshold: float = 0) \
+            -> List[Dict[str, float]]:
+        """
+        Produce the category predictions in terms of probabilities on the given topic embeddings.
+        This method additionally attaches the ORES labels for each of the probabilities.
+        E.g.: 'STEM.Physics' etc.
+
+        :param embeddings: The topic embeddings produced using the LDAModel class
+        :param threshold: Used to filter out labels with a probability less than the provided value
+        :return: The plain-text predicted text categories of the embeddings
+        """
+        probas = self.predict_proba(embeddings)
+        outputs = list()
+        for proba in probas:
+            outputs.append({self.text_categories[i]: p
+                            for i, p in enumerate(proba) if p > threshold})
+        return outputs
 
     def predict_proba(self, embeddings: List[np.ndarray]) -> np.ndarray:
         """
