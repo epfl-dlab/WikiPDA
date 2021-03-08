@@ -28,7 +28,7 @@ class RevisionListConverter(BaseConverter):
     -The GET function receives a list of ids of form: [id1, id2, id3, ...]
     """
     def to_python(self, value):
-        return [int(revision) for revision in value.split('|')]
+        return tuple([int(revision) for revision in value.split('|')])
 
     def to_url(self, values):
         return '|'.join(str(value) for value in values)

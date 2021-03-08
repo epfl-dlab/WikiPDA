@@ -8,12 +8,13 @@ from flask import request, abort, make_response, jsonify
 from flask_restful import Resource, reqparse, inputs
 from settings import SUPPORTED_LANGUAGES
 from common.resource_instances import PREPROCESSORS, BAGGER, LDA_MODELS, TEXT_CLASSIFIER
-
+from functools import lru_cache
 from wikipda.article import fetch_article_data
 
 
 class CategoryPredictionsRevision(Resource):
 
+	@lru_cache(maxsize=256)
     def get(self, revids):
         """
         Predict the ORES labels for a given Wikipedia article revision using a distribution of 300
@@ -95,7 +96,8 @@ class CategoryPredictionsRevision(Resource):
 
 
 class CategoryPredictionsWikitext(Resource):
-
+	
+	@lru_cache(maxsize=256)
     def post(self):
         """
         Predict the ORES labels for a given Wikipedia article revision using a distribution of 300

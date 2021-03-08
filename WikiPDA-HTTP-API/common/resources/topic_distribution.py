@@ -1,63 +1,206 @@
 """
-This module contains the flask restful resource definition for the n most probable links for all
-the topics in a given LDA model.
+Module contains the flask-restful definition for the topic embedding resource.
+This resource takes the articles and processes them through the WikiPDA pipeline using the
+WikiPDA library.
 """
 
-from flask_restful import Resource, reqparse
-from common.resource_instances import LDA_MODELS
+from flask import request, abort, make_response, jsonify
+from flask_restful import Resource, reqparse, inputs
+from settings import SUPPORTED_LANGUAGES, SUPPORTED_LDA
+from common.resource_instances import PREPROCESSORS, BAGGER, LDA_MODELS
+from functools import lru_cache
+from wikipda.article import fetch_article_data
 
 
-class TopicsQID(Resource):
-
-    def get(self, k):
+class TopicsDistributionRevision(Resource):
+    @lru_cache(maxsize=256)
+    def get(self, revids):
         """
-        Endpoint allows getting the most probable QIDs for a given pretrained LDA model.
+        Returns the topic distribution for a provided set of Wikipedia revisions.
+        Each request is limited to a maximum of 15 different articles at a time.
             ---
             parameters:
-              - name: k
-                description: the k used for the pretrained model queried
+              - name: revids
+                description: Wikipedia revision ids, separated using the | token (max 15).
                 in: path
-                type: int
-                required: false
-                default: 300
+                type: string
+                required: true
+                examples:
+                  albert einstein:
+                    value: 998444189
+                    summary: The Albert Einstein article
 
-              - name: num_links
-                description: the amount of link probabilities to return for the given distributions (max 20)
+              - name: lang
+                description: Language edition of wikipedia
+                in: query
+                type: string
+                required: true
+                example: en
+
+              - name: dimensions
+                description: Amount of topics to use for embedding (parameter K in LDA)
                 in: query
                 type: int
-                required: false
-                default: 10
+                default: 300
+
+              - name: enrich
+                description: Whether to perform link densification on text or not (recommended)
+                in: query
+                type: bool
+                default: True
 
             responses:
               200:
-                description: The link distributions for the given LDA model.
+                description: The topic embeddings for the given article revisions
                 schema:
-                  id: Link distributions
-                  type: array
-                  items:
-                    type: array
-                    items:
-                      oneOf:
-                        - type: number
-                        - type: array
+                  id: TopicEmbeddings
+                  type: object
+                  properties:
+                    topic_embeddings:
+                      type: array
+                      items:
+                        type: array
+                        items:
+                          type: array
                           items:
-                            type: array
-                            items:
-                              oneOf:
-                                - type: string
-                                - type: string
+                            type: number
        """
+
+        # Make sure users do not hog too many resources.
+        if len(revids) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
+
         parser = reqparse.RequestParser()
-        parser.add_argument('num_links',
+        parser.add_argument('lang',
+                            choices=SUPPORTED_LANGUAGES,
+                            type=str,
+                            required=True,
+                            help='Unknown language: {error_msg}')
+
+        parser.add_argument('dimensions',
+                            choices=SUPPORTED_LDA,
                             type=int,
-                            default=10,
-                            choices=[i for i in range(1, 21)],
-                            required=False)
+                            default=300,
+                            help=f'Topic embedding size requested not available, only the following'
+                                 f' are supported in the API: {str(SUPPORTED_LDA)}')
+
+        parser.add_argument('enrich',
+                            default=True,
+                            type=inputs.boolean)
 
         args = parser.parse_args()
 
-        # load model
-        model = LDA_MODELS[k]
+        # Load and process articles
+        titles, revisions, wikitexts = fetch_article_data(revids, args.lang)
+        articles = PREPROCESSORS[args.lang].load(wikitexts, revisions, titles, enrich=args.enrich)
 
-        # return topic distributions
-        return model.get_topics(num_links=args.num_links)
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
+        # Load model
+        model = LDA_MODELS[args.dimensions]
+
+        # Produce embeddings
+        embeddings = model.get_embeddings(bols)
+        return {'topics_distribution': embeddings}
+
+
+class TopicsDistributionWikitext(Resource):
+    @lru_cache(maxsize=256)
+    def post(self):
+        """
+        Returns the topic distribution for a provided set of Wikicode documents.
+        Each request is limited to a maximum of 15 different articles at a time.
+            ---
+            parameters:
+
+              - name: wikitexts
+                in: body
+                required: true
+                schema:
+                  id: Wikitext
+                  required:
+                    - wikitexts
+                  properties:
+                    wikitexts:
+                      type: array
+                      items:
+                        type: string
+
+              - name: lang
+                description: Language edition of wikipedia
+                in: query
+                type: string
+                required: true
+                example: en
+
+              - name: dimensions
+                description: Amount of topics to use for embedding (parameter K in LDA)
+                in: query
+                type: int
+                default: 300
+
+              - name: enrich
+                description: Whether to perform link densification on text or not (recommended)
+                in: query
+                type: bool
+                default: True
+
+            responses:
+              200:
+                description: The topic embeddings for the given article revisions
+                schema:
+                  id: TopicEmbeddings
+                  type: object
+                  properties:
+                    topic_embeddings:
+                      type: array
+                      items:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            type: number
+       """
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('lang',
+                            choices=SUPPORTED_LANGUAGES,
+                            type=str,
+                            required=True,
+                            help='Unknown language: {error_msg}')
+
+        parser.add_argument('dimensions',
+                            choices=SUPPORTED_LDA,
+                            type=int,
+                            default=300,
+                            help=f'Topic embedding size requested not available, only the following'
+                                 f' are supported in the API: {str(SUPPORTED_LDA)}')
+
+        parser.add_argument('enrich',
+                            default=True,
+                            type=inputs.boolean)
+
+        args = parser.parse_args()
+
+        # User should provide the Wikitexts they want to have processed in request
+        wikitexts = request.json['wikitexts']
+
+        # Make sure users do not hog too many resources.
+        if len(wikitexts) > 15:
+            response = make_response(jsonify(message="Passed too many articles, max is 15."), 431)
+            abort(response)
+
+        # Load and process articles
+        articles = PREPROCESSORS[args.lang].load(wikitexts, enrich=args.enrich)
+
+        # Bag the link vectors
+        bols = BAGGER.bag(articles)
+
+        # Load model
+        model = LDA_MODELS[args.dimensions]
+
+        # Produce embeddings
+        embeddings = model.get_embeddings(bols)
+        return {'topics_distribution': embeddings}
