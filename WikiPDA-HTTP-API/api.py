@@ -5,9 +5,9 @@ Module contains the setup and configuration of the API itself.
 from flask import Flask, Blueprint
 from flask_restful import Api
 from flasgger import Swagger
-from common.resources.topics_qid import TopicsDistributionRevision, TopicsDistributionWikitext
+from common.resources.topic_distribution import TopicsDistributionRevision, TopicsDistributionWikitext
 from common.resources.text_category import CategoryPredictionsRevision, CategoryPredictionsWikitext
-from common.resources.topic_distribution import TopicsQID
+from common.resources.topics_qid import TopicsQID
 from common.util import RevisionListConverter
 from swagger_config import SWAGGER_CONFIG
 from flask_config import WikiPDAConfig
