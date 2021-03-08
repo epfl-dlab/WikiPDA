@@ -13,7 +13,6 @@ from wikipda.article import fetch_article_data
 
 
 class CategoryPredictionsRevision(Resource):
-
 	@lru_cache(maxsize=256)
     def get(self, revids):
         """
@@ -96,7 +95,6 @@ class CategoryPredictionsRevision(Resource):
 
 
 class CategoryPredictionsWikitext(Resource):
-	
 	@lru_cache(maxsize=256)
     def post(self):
         """

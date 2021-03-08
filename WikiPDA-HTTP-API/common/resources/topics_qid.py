@@ -8,7 +8,6 @@ from common.resource_instances import LDA_MODELS
 from functools import lru_cache
 
 class TopicsQID(Resource):
-
     @lru_cache(maxsize=256)
     def get(self, k):
         """
