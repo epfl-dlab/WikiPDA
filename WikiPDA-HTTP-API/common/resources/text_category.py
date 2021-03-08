@@ -13,7 +13,7 @@ from wikipda.article import fetch_article_data
 
 
 class CategoryPredictionsRevision(Resource):
-	@lru_cache(maxsize=256)
+    @lru_cache(maxsize=256)
     def get(self, revids):
         """
         Predict the ORES labels for a given Wikipedia article revision using a distribution of 300
@@ -95,7 +95,7 @@ class CategoryPredictionsRevision(Resource):
 
 
 class CategoryPredictionsWikitext(Resource):
-	@lru_cache(maxsize=256)
+    @lru_cache(maxsize=256)
     def post(self):
         """
         Predict the ORES labels for a given Wikipedia article revision using a distribution of 300

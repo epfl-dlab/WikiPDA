@@ -5,4 +5,5 @@ gunicorn
 numpy
 werkzeug
 diskcache
+xgboost
 git+https://github.com/epfl-dlab/wikipda.git#subdirectory=WikiPDA-Lib
