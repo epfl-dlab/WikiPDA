@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css" integrity="sha512-/zs32ZEJh+/EO2N1b0PEdoA10JkdC3zJ8L5FTiQu82LR9S/rOQNfQN7U59U9BC12swNeRAz3HSzIL2vpp4fv3w==" crossorigin="anonymous" />
     <title>Crosslingual Topic Modeling with WikiPDA</title>
   </head>
   <body>
@@ -26,17 +26,17 @@
 
 
 <div class="card" style="margin-left: 200px; margin-right: 200px">
-  <h5 class="card-header">Use WikiPDA with wikicode: <i>get topics distribution (K=50) or predict ORES topics</i></h5>
+  <h5 class="card-header">Use WikiPDA with wikicode: <i>get topics distribution (K=50) or predict ORES labels</i></h5>
   <div class="card-body">
     <!-- <h5 class="card-title">Predict the ORES topic associated with the article</h5> -->
 
-	<div class="text-right"> Try some examples:
-		<div class="btn-group" role="group" aria-label="Basic outlined example" style="margin-bottom: 20px">
-		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="0">IT: Hydrogen atom</button>
-		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="1">FA: Academy Awards</button>
-		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="2">EN: Bronze Age</button>
-		</div>
-	</div>
+  <div class="text-right"> Try some examples:
+    <div class="btn-group" role="group" aria-label="Basic outlined example" style="margin-bottom: 20px">
+      <button type="button" class="btn btn-outline-primary prediction_sample_button" value="0">IT: Hydrogen atom</button>
+      <button type="button" class="btn btn-outline-primary prediction_sample_button" value="1">FA: Academy Awards</button>
+      <button type="button" class="btn btn-outline-primary prediction_sample_button" value="2">EN: Bronze Age</button>
+    </div>
+  </div>
 
   <div class="input-group mb-3">
     <div class="input-group-prepend">
@@ -64,17 +64,20 @@
         <span class="sr-only">Loading...</span>
       </div>
       <button class="btn btn-dark" id="topic_distribution_button">Get topics distribution</button> or 
-      <button class="btn btn-primary" id="predict_topic_button">Predict topics</button> 
+      <button class="btn btn-primary" id="predict_topic_button">Predict ORES labels</button> 
       
     </div>
 
 <div id="from_wikicode_response">
-	<div id="predict_topic_response" class="alert alert-primary" role="alert" style="display: none; margin-top: 30px; "></div>
-	<div id="topics_distribution_response" class="alert alert-secondary" role="alert" style="display: none; margin-top: 30px;"></div>
+  <div id="predict_topic_response" class="alert alert-primary" role="alert" style="display: none; margin-top: 30px; "></div>
+  <div id="topics_distribution_response" class="alert alert-light" role="alert" style="margin-top: 30px;">
+    <canvas id="topics_barplot" height="300"></canvas>
+  </div>
 </div>
 
   </div>
 </div>
+
 
 <br>
 
@@ -83,6 +86,8 @@
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js" integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA==" crossorigin="anonymous"></script>
 
 <script type="text/javascript">
 
@@ -94,19 +99,45 @@ prediction_samples = [
 ]
 
 function set_predict_sample(index) {
-	sample = prediction_samples[index]
-	$("#predict_topic_lang").val(sample.lang);
-  	$("#predict_topic_wikicode").val(sample.wikicode);
+  sample = prediction_samples[index]
+  $("#predict_topic_lang").val(sample.lang);
+    $("#predict_topic_wikicode").val(sample.wikicode);
 }
 
 
   $(function() {
 
+  var plotCtx = document.getElementById('topics_barplot').getContext('2d');
 
-	set_predict_sample(0)
-  	$(".prediction_sample_button").click(function(e) {
-  		set_predict_sample(e.target.value);
-  	});
+  var labels = []
+  var data = []
+    for (var i = 0 ; i < 50; i++) {
+        labels.push("Topic "+i);
+        data.push(1);
+    }
+  var myBarChart = new Chart(plotCtx, {
+      type: 'bar',
+    data: {
+            labels: labels,
+            datasets: [{
+                label: 'Topics distribution (50 topics)',
+                backgroundColor: 'rgb(255, 99, 132)',
+                borderColor: 'rgb(255, 99, 132)',
+                data: data
+            }]
+        },
+    options: {
+          maintainAspectRatio: false,
+      }
+  });
+
+  $("#topics_distribution_response").hide();
+
+
+  set_predict_sample(0)
+    $(".prediction_sample_button").click(function(e) {
+      set_predict_sample(e.target.value);
+    });
 
 
     $("#predict_topic_button").click(function() {
@@ -115,8 +146,8 @@ function set_predict_sample(index) {
       
       data = JSON.stringify({"wikitexts": [wikicode]});
 
-	    var count = (wikicode.match(/\[\[/g) || []).length;
-	  // console.log(count);
+      // var count = (wikicode.match(/\[\[/g) || []).length;
+    // console.log(count);
 
       $(".loading").show();
       $("#topics_distribution_response").hide();
@@ -127,29 +158,29 @@ function set_predict_sample(index) {
         url: "/predict_labels/?lang="+lang+"&enrich=true",
         data: data,
         complete: function(res) {
-        	if (res.status == 200) {
-				      $(".loading").hide();
-	            $("#predict_topic_response").show();
+          if (res.status == 200) {
+              $(".loading").hide();
+              $("#predict_topic_response").show();
 
 
-	            labels = JSON.parse(res.responseText).text_categories;
+              labels = JSON.parse(res.responseText).text_categories;
 
-	            if (labels.length > 0) {
+              if (labels.length > 0) {
 
                 predicted_labels = `<h5>${labels[0].label} (prob.=${labels[0].probability.toFixed(3)})</h5>`
 
-	            	for (var i = 1; i < Math.min(labels.length, 4); i++) {
-	            		predicted_labels += `<div><i>${labels[i].label} (prob.=${labels[i].probability.toFixed(3)})</i></div>`
-	            		
-	            	}
-	            	$("#predict_topic_response").html(predicted_labels);
-	            }
-	            
-        	}
-        	else {
-        		$(".loading").hide();
-        		alert("ERROR: Try later");
-        	}
+                for (var i = 1; i < Math.min(labels.length, 4); i++) {
+                  predicted_labels += `<div><i>${labels[i].label} (prob.=${labels[i].probability.toFixed(3)})</i></div>`
+                  
+                }
+                $("#predict_topic_response").html(predicted_labels);
+              }
+              
+          }
+          else {
+            $(".loading").hide();
+            alert("ERROR: Try later");
+          }
             
         },
         dataType: 'application/json',
@@ -181,13 +212,17 @@ $("#topic_distribution_button").click(function() {
               $("#topics_distribution_response").show();
 
               topicsDistribution = JSON.parse(res.responseText).topics_distribution[0];
-              console.log(topicsDistribution)
+
               var dist = []
               for (var i = 0 ; i < topicsDistribution.length; i++) {
                 dist.push(topicsDistribution[i][1])
               }
-              $("#topics_distribution_response").html(JSON.stringify(dist));
-              
+
+              myBarChart.data.datasets[0].data = dist;
+
+              myBarChart.update();
+
+
           }
           else {
             $(".loading").hide();
@@ -201,7 +236,11 @@ $("#topic_distribution_button").click(function() {
 });
 
 
+
   });
+
+
+
 
 </script>
 
