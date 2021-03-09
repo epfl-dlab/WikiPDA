@@ -133,6 +133,8 @@ class Preprocessor:
         links_regex = re.compile(
             r"\[\[(?P<link>[^\n\|\]\[\<\>\{\}]{0,256})(?:\|(?P<anchor>[^\[]*?))?\]\]")
 
+        references_regex = re.compile(r"<ref[^>]*>[^<]+<\/ref>")
+
         filtered_texts = []
         links = []
         for text in raw_texts:
@@ -142,7 +144,10 @@ class Preprocessor:
             # Remove links from plain text
             filtered = re.sub(links_regex, '.', text)
             filtered_texts.append(filtered.lower())
-
+        
+        # Remove references
+        filtered_texts = re.sub(references_regex, '.', filtered_texts)
+        
         # Parse and retrieve plaintext of articles without wikicode
         clean_texts = [mw.parse(text).strip_code() for text in filtered_texts]
 
