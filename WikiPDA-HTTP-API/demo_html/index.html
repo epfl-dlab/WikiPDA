@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>Crosslingual Topic Modeling with WikiPDA</title>
+  </head>
+  <body>
+
+
+<div class="jumbotron">
+
+    <h1 class="display-4">Crosslingual Topic Modeling with WikiPDA</h1>
+<i class="lead">Tiziano Piccardi, Robert West</i>
+<hr class="my-4">
+ <blockquote class="blockquote"><p class="small">We present Wikipedia-based Polyglot Dirichlet Allocation (WikiPDA), a crosslingual topic model that learns to represent Wikipedia articles written in any language as distributions over a common set of language-independent topics. It leverages the fact that Wikipedia articles link to each other and are mapped to concepts in the Wikidata knowledge base, such that, when represented as bags of links, articles are inherently language-independent. WikiPDA works in two steps, by first densifying bags of links using matrix completion and then training a standard monolingual topic model. A human evaluation shows that WikiPDA produces more coherent topics than monolingual text-based LDA, thus offering crosslinguality at no cost. We demonstrate WikiPDA’s utility in two applications: a study of topical biases in 28 Wikipedia editions, and crosslingual supervised classification. Finally, we highlight WikiPDA’s capacity for zero-shot language transfer, where a model is reused for new languages without any fine-tuning.</p></blockquote>
+
+<p>Full paper: <a href="https://arxiv.org/abs/2009.11207" target="_blank">https://arxiv.org/abs/2009.11207</a></p>
+<p>Source code: <a href="https://github.com/epfl-dlab/WikiPDA" target="_blank">https://github.com/epfl-dlab/WikiPDA</a></p>
+<p>API docs: <a href="http://wikipda.dlab.tools/apidocs/" target="_blank">http://wikipda.dlab.tools/apidocs/</a> <br><i style="font-size: small;">Credits: <a href="https://github.com/DanielBergThomsen">Daniel Berg Thomsen</a></i></p>
+
+</div>
+
+
+<div class="card" style="margin-left: 200px; margin-right: 200px">
+  <h5 class="card-header">Use WikiPDA with wikicode: <i>get topics distribution (K=50) or predict ORES topics</i></h5>
+  <div class="card-body">
+    <!-- <h5 class="card-title">Predict the ORES topic associated with the article</h5> -->
+
+	<div class="text-right"> Try some examples:
+		<div class="btn-group" role="group" aria-label="Basic outlined example" style="margin-bottom: 20px">
+		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="0">IT: Hydrogen atom</button>
+		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="1">FA: Academy Awards</button>
+		  <button type="button" class="btn btn-outline-primary prediction_sample_button" value="2">EN: Bronze Age</button>
+		</div>
+	</div>
+
+  <div class="input-group mb-3">
+    <div class="input-group-prepend">
+      <label class="input-group-text" for="inputGroupSelect01">Language</label>
+    </div>
+    <select class="custom-select" id="predict_topic_lang">
+      <option value="en">English</option>
+      <option value="de">German</option>
+      <option value="fr">French</option>
+      <option value="it" selected="selected">Italian</option>
+      <option value="fa">Farsi</option>
+    </select>
+  </div>
+
+
+    <div class="input-group">
+      <div class="input-group-prepend">
+        <span class="input-group-text">Wikicode</span>
+      </div>
+      <textarea rows="6" class="form-control" aria-label="With textarea" id="predict_topic_wikicode"></textarea>
+    </div>
+
+    <div class="text-right" style="margin-top: 30px"> 
+      <div class="spinner-border loading" role="status" style="display: none; margin-right: 20px">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <button class="btn btn-dark" id="topic_distribution_button">Get topics distribution</button> or 
+      <button class="btn btn-primary" id="predict_topic_button">Predict topics</button> 
+      
+    </div>
+
+<div id="from_wikicode_response">
+	<div id="predict_topic_response" class="alert alert-primary" role="alert" style="display: none; margin-top: 30px; "></div>
+	<div id="topics_distribution_response" class="alert alert-secondary" role="alert" style="display: none; margin-top: 30px;"></div>
+</div>
+
+  </div>
+</div>
+
+<br>
+
+
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+
+
+prediction_samples = [
+{lang: "it", wikicode: "In [[meccanica quantistica]] l''''[[atomo]] di [[idrogeno]]''' è uno dei più semplici sistemi studiabili in 3 dimensioni, poiché possiede un [[Nucleo atomico|nucleo]] con un [[protone]] e ha un solo [[elettrone]]. È il tipico esempio di [[Moto in un campo centrale|moto in campo a simmetria centrale]], ed il sistema gode di notevoli proprietà di simmetria. \n\nLa [[massa inerziale]] dell'atomo di idrogeno è minore della somma della [[massa del protone]] e dell'[[massa dell'elettrone|elettrone]] che lo compongono, considerate separatamente, per una differenza pari alla quantità di energia negativa nascosta che deve essere fornita all'atomo per separarli, e vincere l'[[forza elettromagnetica|attrazione elettro-magnetica]] elettrone-protone che tiene unito l'atomo, contrastando la repulsione fra le loro [[massa gravitazionale|masse gravitazionali]]."},
+{lang: "fa", wikicode: "'''جایزه‌های آکادمی اسکار''' ({{lang-en|Academy Awards}}) یا '''اسکار''' ({{lang-en|Oscars}})، جایزه‌هایی برای شایستگی‌های هنری و فنی در [[صنعت فیلم]] هستند. این جایزه‌ها، به عنوان پرآوازه و نیک‌نام‌ترین جایزه‌ها در صنعت سرگرمی شناخته می‌شوند. این مراسم یکی از شاخص‌ترین مراسم‌های اهدای جوایز در جهان است و بزرگترین جایزه در زمینهٔ سینما می‌باشد و هر ساله در بیش از ۱۰۰ کشور جهان به‌صورت زنده پخش می‌شود. جایزهٔ اسکار یکی از نه جایزه از جایزه‌های آکادمی است. جایزه‌های آکادمی در بخش رسانه به عنوان قدیمی‌ترین مراسم اهدای جوایز به‌شمار رفته و جوایزی همچون [[جایزه گرمی]] (برای موسیقی)، [[جایزه امی]] (برای تلویزیون) و [[جایزه تونی]] (برای تئاتر) پس از آن شکل گرفتند. آکادمی علوم و هنرهای تصاویر متحرک توسط [[لویی بی میر]] مدیر استودیو [[مترو گلدوین مایر]] ایجاد شد.\n\n نخستین مراسم اسکار در روز پنجشنبه، [[۱۶ مه]] [[۱۹۲۹ (میلادی)|۱۹۲۹]] در هتل روزولت در [[هالیوود، کالیفرنیا]] برگزار شد. جوایز آکادمی برای اولین بار در سال [[۱۹۳۰]] در رادیو و در سال [[۱۹۵۳]] برای اولین بار در تلویزیون پخش شد. واپسین دوره جوایز آکادمی، [[نود و یکمین دوره جوایز اسکار]] در [[سالن تئاتر دالبی]] هالیوود، لس آنجلس برگزار شد."},
+{lang: "en", wikicode: "The '''Bronze Age''' is a prehistoric [[Periodization|period]] that was characterized by the use of [[bronze]], in some areas [[proto-writing]], and other early features of urban [[civilization]]. The Bronze Age is the second principal period of the [[Three-age system|three-age Stone-Bronze-Iron system]], as proposed in modern times by [[Christian Jürgensen Thomsen]], for classifying and studying ancient societies. An ancient civilization is defined to be in the Bronze Age either by producing [[bronze]] by [[smelting]] its own [[copper]] and alloying with [[tin]], [[arsenic]], or other metals, or by trading for bronze from production areas elsewhere. Bronze is harder and more durable than other metals available at the time, allowing Bronze Age civilizations to gain a technological advantage. While terrestrial [[iron]] is naturally abundant, its high melting point of 1538°C (2800°F) placed it out of reach of common use until the end of the second millennium BC. \n\nTin's low melting point of 231.9°C (449.4°F) and copper's relatively moderate melting point of 1,085°C (1,985°F) placed them within the capabilities of the Neolithic [[pottery]] [[kiln]]s, which date back to 6,000&nbsp;BC and were able to produce temperatures greater than 900°C (1,652°F).<ref name=\"IIIDorn2006\">James E. McClellan III; Harold Dorn (2006). ''[https://books.google.com/books?id=aJgp94zNwNQC Science and Technology in World History: An Introduction]''. JHU Press. {{ISBN|978-0-8018-8360-6}}. p. 21.</ref> Copper/tin ores are rare, as reflected in the fact that there were no tin bronzes in [[Western Asia]], before trading in bronze began in the [[3rd millennium BC|third millennium BC]]. Worldwide, the Bronze Age generally followed the [[Neolithic]] period, with the [[Chalcolithic]] serving as a transition. \n\nBronze Age cultures differed in their [[development of the first writing]]. According to archaeological evidence, cultures in [[Mesopotamia]] ([[cuneiform]] script) and [[Egypt]] ([[hieroglyph]]s) developed the earliest practical writing systems. [[Western Asia]] and the [[Near East]] were the first regions to enter the Bronze Age, which began with the rise of the [[Mesopotamia]]n civilization of [[Sumer]] in the mid 4th millennium BC. Cultures in the ancient Near East (often called one of \"the [[cradles of civilization]]\") practiced intensive year-round agriculture, developed [[writing system]]s, invented the [[potter's wheel]], created centralized governments (usually in form of hereditary monarchies), written law codes, [[city-state]]s and nation-states and empires, embarked on advanced architectural projects, introduced [[social stratification]], economic and civil administration, [[slavery]], and practiced organized [[warfare]], medicine and religion. Societies in the region laid the foundations for [[astronomy]], [[mathematics]] and [[astrology]]."},
+]
+
+function set_predict_sample(index) {
+	sample = prediction_samples[index]
+	$("#predict_topic_lang").val(sample.lang);
+  	$("#predict_topic_wikicode").val(sample.wikicode);
+}
+
+
+  $(function() {
+
+
+	set_predict_sample(0)
+  	$(".prediction_sample_button").click(function(e) {
+  		set_predict_sample(e.target.value);
+  	});
+
+
+    $("#predict_topic_button").click(function() {
+      wikicode = $("#predict_topic_wikicode").val();
+      lang = $("#predict_topic_lang").val();
+      
+      data = JSON.stringify({"wikitexts": [wikicode]});
+
+	    var count = (wikicode.match(/\[\[/g) || []).length;
+	  // console.log(count);
+
+      $(".loading").show();
+      $("#topics_distribution_response").hide();
+      $("#predict_topic_response").hide();
+
+      $.ajax({
+        type: "POST",
+        url: "/predict_labels/?lang="+lang+"&enrich=true",
+        data: data,
+        complete: function(res) {
+        	if (res.status == 200) {
+				      $(".loading").hide();
+	            $("#predict_topic_response").show();
+
+
+	            labels = JSON.parse(res.responseText).text_categories;
+
+	            if (labels.length > 0) {
+
+                predicted_labels = `<h5>${labels[0].label} (prob.=${labels[0].probability.toFixed(3)})</h5>`
+
+	            	for (var i = 1; i < Math.min(labels.length, 4); i++) {
+	            		predicted_labels += `<div><i>${labels[i].label} (prob.=${labels[i].probability.toFixed(3)})</i></div>`
+	            		
+	            	}
+	            	$("#predict_topic_response").html(predicted_labels);
+	            }
+	            
+        	}
+        	else {
+        		$(".loading").hide();
+        		alert("ERROR: Try later");
+        	}
+            
+        },
+        dataType: 'application/json',
+        contentType: 'application/json'
+      });
+
+    });
+
+
+
+$("#topic_distribution_button").click(function() {
+
+      $(".loading").show();
+      $("#topics_distribution_response").hide();
+      $("#predict_topic_response").hide();
+
+      wikicode = $("#predict_topic_wikicode").val();
+      lang = $("#predict_topic_lang").val();
+      
+      data = JSON.stringify({"wikitexts": [wikicode]});
+
+      $.ajax({
+        type: "POST",
+        url: "/topics_distribution/?lang="+lang+"&dimensions=50&enrich=true",
+        data: data,
+        complete: function(res) {
+          if (res.status == 200) {
+              $(".loading").hide();
+              $("#topics_distribution_response").show();
+
+              topicsDistribution = JSON.parse(res.responseText).topics_distribution[0];
+              console.log(topicsDistribution)
+              var dist = []
+              for (var i = 0 ; i < topicsDistribution.length; i++) {
+                dist.push(topicsDistribution[i][1])
+              }
+              $("#topics_distribution_response").html(JSON.stringify(dist));
+              
+          }
+          else {
+            $(".loading").hide();
+            alert("ERROR: Try later");
+          }
+            
+        },
+        dataType: 'application/json',
+        contentType: 'application/json'
+      });
+});
+
+
+  });
+
+</script>
+
+  </body>
+</html>
