@@ -143,10 +143,10 @@ class Preprocessor:
 
             # Remove links from plain text
             filtered = re.sub(links_regex, '.', text)
+            # Remove references
+            filtered = re.sub(references_regex, '.', filtered)
+            
             filtered_texts.append(filtered.lower())
-        
-        # Remove references
-        filtered_texts = re.sub(references_regex, '.', filtered_texts)
         
         # Parse and retrieve plaintext of articles without wikicode
         clean_texts = [mw.parse(text).strip_code() for text in filtered_texts]
