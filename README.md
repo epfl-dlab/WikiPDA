@@ -21,7 +21,12 @@ Credits for WikiPDA-Lib and WikiPDA-HTTP-API: [DanielBergThomsen](https://github
 
 ## Public Demo
 
-Available soon. We will release a demo to test WikiPDA.
+We offer a public demo and APIs to test WikiPDA on a subset of languages (EN, DE, FR, IT, FA):
+
+[http://wikipda.dlab.tools/](http://wikipda.dlab.tools/)
+
+Please note that the tool is a work in progress and not intended for large-scale data collection. For better performance, we recommend downloading the models and run the library locally.
+
 
 ## What can I do with WikiPDA?
 
