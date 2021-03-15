@@ -59,5 +59,9 @@ class TopicsQID(Resource):
         # load model
         model = LDA_MODELS[k]
 
-        # return topic distributions
-        return model.get_topics(num_links=args.num_links)
+        topics_ids = model.get_topics(num_links=args.num_links)
+        result = []
+        for qid_value in [t[1] for t in topics_ids]:
+            result.append([{"qid": qid[0], "value": qid[1]} for qid in qid_value])
+
+        return result
