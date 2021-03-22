@@ -1,5 +1,5 @@
 from wikipda.article import Preprocessor, Bagger, fetch_article_data
-from wikipda.model import LDAModel, TextClassifier
+from wikipda.model import WikiPDAModel, ORESClassifier
 
 # Scrape articles from Wikipedia using revision IDs
 titles, revisions, wikitexts = fetch_article_data([985175359], 'en')
@@ -13,13 +13,13 @@ b = Bagger()
 bols = b.bag(articles)
 
 # Produce embeddings
-model = LDAModel(k=40)
-embeddings = model.get_embeddings(bols)
+model = WikiPDAModel(k=40)
+topics_distribution = model.get_distribution(bols)
 
 # predict the categories of the texts
 # NOTE: currently only supports topic embeddings with k=300
-classifier = TextClassifier()
-text_categories = classifier.predict_category(embeddings)
+classifier = ORESClassifier()
+text_categories = classifier.predict_category(topics_distribution)
 
-print(embeddings)
+print(topics_distribution)
 print(text_categories)

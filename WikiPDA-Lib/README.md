@@ -32,9 +32,9 @@ If you would prefer another placement of resources you can configure this in
 ## Example usage
 ```python
 from wikipda.article import Preprocessor, Bagger, fetch_article_data
-from wikipda.model import LDAModel, TextClassifier
+from wikipda.model import WikiPDAModel, ORESClassifier
 
-# Scrape rticles from Wikipedia using revision IDs
+# Scrape articles from Wikipedia using revision IDs
 titles, revisions, wikitexts = fetch_article_data([985175359], 'en')
 
 # Also possible to process only wikitexts!
@@ -45,12 +45,12 @@ articles = p.load(wikitexts, revisions, titles, enrich=True)
 b = Bagger()
 bols = b.bag(articles)
 
-# Produce embeddings
-model = LDAModel(k=300)
-embeddings = model.get_embeddings(bols)
+# Get topics distribution
+model = WikiPDAModel(k=40)
+topics_distribution = model.get_distribution(bols)
 
-# predict the categories of the texts
+# predict the ORES categories of the distribution
 # NOTE: currently only supports topic embeddings with k=300
-classifier = TextClassifier()
-text_categories = classifier.predict_category(embeddings)
+classifier = ORESClassifier()
+text_categories = classifier.predict_category(topics_distribution)
 ```

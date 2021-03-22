@@ -12,7 +12,7 @@ import numpy as np
 from xgboost import XGBClassifier
 
 
-class TextClassifier:
+class ORESClassifier:
     """
     Class allows for computing the text category of topic embeddings. 
     NOTE: there is currently only a classifier trained on embeddings with k=300.
@@ -52,7 +52,7 @@ class TextClassifier:
         Produce category predictions for the given topic embeddings by running them through all
         the models and picking the one who is the most confident in their prediction.
 
-        :param embeddings: The topic embeddings produced using the LDAModel class
+        :param embeddings: The topic embeddings produced using the WikiPDAModel class
         :return: the one-hot encoded predictions for the category of the embeddings
         """
         if len(embeddings) == 0:
@@ -70,7 +70,7 @@ class TextClassifier:
         Produce category predictions and also return the predictions in plain text.
         E.g.: 'STEM.Physics' etc.
 
-        :param embeddings: The topic embeddings produced using the LDAModel class
+        :param embeddings: The topic embeddings produced using the WikiPDAModel class
         :return: The plain-text predicted text categories of the embeddings
         """
         predictions = self.predict(embeddings)
@@ -88,7 +88,7 @@ class TextClassifier:
         This method additionally attaches the ORES labels for each of the probabilities.
         E.g.: 'STEM.Physics' etc.
 
-        :param embeddings: The topic embeddings produced using the LDAModel class
+        :param embeddings: The topic embeddings produced using the WikiPDAModel class
         :param threshold: Used to filter out labels with a probability less than the provided value
         :return: The plain-text predicted text categories of the embeddings
         """
@@ -103,7 +103,7 @@ class TextClassifier:
         """
         Produce the category predictions in terms of probabilities on the given topic embeddings.
 
-        :param embeddings: The topic embeddings produced using the LDAModel class
+        :param embeddings: The topic embeddings produced using the WikiPDAModel class
         :return: The probability matrix of the category predictions for the embeddings.
         """
         X = np.array(embeddings)
@@ -116,7 +116,7 @@ class TextClassifier:
         return probas
 
 
-class LDAModel:
+class WikiPDAModel:
     """
     Class for producing the embeddings for an article which has been run through the WikiPDA
     pre-processing pipeline.
@@ -151,7 +151,7 @@ class LDAModel:
 
         self.model = LdaMulticore.load(path + '/lda.model')
 
-    def get_embeddings(self, bols: List[List[str]]) -> List[np.ndarray]:
+    def get_distribution(self, bols: List[List[str]]) -> List[np.ndarray]:
         """
         Produces topic embeddings for the given articles that have been run through the entire
         WikiPDA preprocessing pipeline.
