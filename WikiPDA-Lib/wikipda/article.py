@@ -12,8 +12,11 @@ from wikipda.settings import DATA_DIR, RESOURCE_PATH
 import numpy as np
 from collections import OrderedDict
 import mwparserfromhell as mw
+import logging
 
 import requests
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 def fetch_article_data(revision_ids: List[int], language: str) \
@@ -44,17 +47,47 @@ def fetch_article_data(revision_ids: List[int], language: str) \
             'revids': ids,
         }
         response = requests.get(f'https://{language}.wikipedia.org/w/api.php', params=params)
-        response = response.json()['query']['pages']
+        response = response.json()['query']
+
+        # Prompt user with information regarding which revisions were unavailable
+        if 'badrevids' in response:
+            bad_revids = response['badrevids'].keys()
+            if len(bad_revids) > 0:
+                e = f'The following revisions could not be retrieved from the MediaWiki API: \n' \
+                    f'{", ".join(bad_revids)}\n' \
+                    f'This is likely due to the given revision having been deleted from Wikipedia.\n' \
+                    f'These revisions have been skipped.\n'
+                logging.warning(e)
 
         # for each entry...
-        data = [(response[page_id]['title'],  # ...extract title...
-                 revision['revid'],  # ...and revision ID
-                 revision['*'])  # ...and wikitext
-                for page_id in response.keys() for revision in response[page_id]['revisions']]
+        response = response['pages']
+        data = []
+        for page_id in response.keys():
+            for revision in response[page_id]['revisions']:
+                title = response[page_id]['title']
+                revision_id = revision['revid']
+
+                # Check if wikitext was returned
+                # This is necessary since when multiple revisions of the same page are requested
+                # from the MediaWiki API they do not get filtered from the query response.
+                if '*' not in revision:
+                    e = f'Response from MediaWiki API for revision ID {revision_id} is missing ' \
+                        f'the wikitext of the article. \n ' \
+                        f'This is usually because the revision has ' \
+                        f'been deleted from the requested Wikipedia site. \n ' \
+                        f'This revision has been skipped because of this. \n'
+                    logging.warning(e)
+                else:
+                    wikitext = revision['*']
+                    data.append((title, revision_id, wikitext))
         all_data += data
 
-    titles, revisions, raw_texts = map(tuple, zip(*all_data))
-    return titles, revisions, raw_texts
+    # Only return data if we have any
+    if all_data:
+        titles, revisions, raw_texts = map(tuple, zip(*all_data))
+        return titles, revisions, raw_texts
+    else:
+        return [], [], []
 
 
 class Article:
