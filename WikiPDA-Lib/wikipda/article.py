@@ -269,7 +269,12 @@ class Preprocessor:
         dense_i = OrderedDict()
         for link in existing_links:
             index = matrix_indices.get(link)
-            if index is not None:
+
+            # NOTE: we manually check that the index conforms to the shape of the matrix
+            # factorization since there is some mismatch between the size of the matrix indices
+            # resource and matrix factorization itself (produced from spark). We are investigating
+            # why this is the case.
+            if index is not None and index < N:
                 # Increment adjacency count
                 if index not in a:
                     a[index] = 1
@@ -476,3 +481,8 @@ class FastSqliteDict:
 
     def get(self, key):
         return self.__getitem__(key)
+
+    def __len__(self):
+        GET_LEN = 'SELECT COUNT(*) FROM unnamed'
+        rows = self.conn.select_one(GET_LEN)[0]
+        return rows if rows is not None else 0
