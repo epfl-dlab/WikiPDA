@@ -336,9 +336,10 @@ class Preprocessor:
         best_candidates = []
         start_index = 0
         for cs in candidates_ensemble:
-            candidates = list(cs.keys())
-            phrase_scores = scores[start_index:start_index+len(candidates)]
-            best_candidates.append(candidates[np.argmax(phrase_scores)])
+            if len(cs)>0:
+                candidates = list(cs.keys())
+                phrase_scores = scores[start_index:start_index+len(candidates)]
+                best_candidates.append(candidates[np.argmax(phrase_scores)])
         return best_candidates
 
     @staticmethod
@@ -366,7 +367,7 @@ class Preprocessor:
             mi = matrix_indices.get(wikidata_id)
 
         # Get embedding if already present
-        if mi is not None and mi<len(users):
+        if mi is not None and len(users) < mi:
             u = users[mi]
 
         # Otherwise compute embedding by projecting the links onto V
