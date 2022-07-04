@@ -366,7 +366,7 @@ class Preprocessor:
             mi = matrix_indices.get(wikidata_id)
 
         # Get embedding if already present
-        if mi is not None:
+        if mi is not None and mi<len(users):
             u = users[mi]
 
         # Otherwise compute embedding by projecting the links onto V
