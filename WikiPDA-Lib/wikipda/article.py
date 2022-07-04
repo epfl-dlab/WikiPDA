@@ -326,6 +326,8 @@ class Preprocessor:
 
         # Only access the rows of interest once to save time on loading from disk
         unique_indices = np.unique(all_indices)
+        if len(unique_indices) < 1:
+            return []
         candidate_products = products[unique_indices]
         unique_scores = u @ candidate_products.T
         unique_scores = {m_index: unique_scores[i] for i, m_index in enumerate(unique_indices)}
