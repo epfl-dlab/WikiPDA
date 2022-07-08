@@ -19,6 +19,10 @@ Full paper: [https://arxiv.org/abs/2009.11207](https://arxiv.org/abs/2009.11207)
 
 Credits for WikiPDA-Lib and WikiPDA-HTTP-API: [DanielBergThomsen](https://github.com/DanielBergThomsen)
 
+## Precomputed topics distribution
+
+You can find the pre-computed topics distribution (K=300) for 28 languages [here](https://drive.google.com/drive/u/2/folders/1VIafdB4f1jSppzQtXgJ8XAqYZvv4_6Co). Based on the Wikipedia dump released June 1st, 2022.
+
 ## Public Demo
 
 We offer a public demo and APIs to test WikiPDA on a subset of languages (EN, DE, FR, IT, FA):
